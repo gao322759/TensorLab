@@ -12,12 +12,20 @@ use runmat_core::abi::{
     DiagnosticSeverity, DisplayLabel, ExecutionRequest, HostExecutionPolicy, SourceInput,
 };
 use runmat_core::abi::{ExecutionOutcome, RuntimeDiagnostic};
-use runmat_core::{CompatMode, ExecutionStreamKind, NumericPreviewValue, RunError, RunMatSession};
+use runmat_core::{
+    CompatMode, ExecutionStreamKind, NumericPreviewValue, RunError, RunMatSession,
+    WorkspaceMaterializeOptions, WorkspaceMaterializeTarget,
+};
 use std::time::Instant;
 use tl_types::{
     body_text, echo_line, DiagnosticPayload, FigurePayload, RunReport, StreamEntryPayload,
     VariableInfo,
 };
+
+/// 变量面板单次最多展示的数值个数（快照默认只有 16 个）。
+const WORKSPACE_PREVIEW_ELEMENTS: usize = 128;
+/// 超过该元素数不再逐变量物化，避免大矩阵拖慢每次 run。
+const WORKSPACE_MATERIALIZE_LIMIT: usize = 4096;
 
 pub struct Engine {
     session: RunMatSession,
@@ -143,21 +151,41 @@ impl Engine {
 
     /// 变量面板快照
     ///
-    /// 内核 `workspace_snapshot()` 每个 entry 都带 `preview`（最多
-    /// `WORKSPACE_PREVIEW_LIMIT = 16` 个数值，见 runmat-core `workspace::emit`），
-    /// 这里把它格式化为 MATLAB 风格单行文本。非数值类型（string/char/complex/
-    /// cell/struct）内核不产出数值预览，此时 preview 为空串。
+    /// 内核 `workspace_snapshot()` 每个 entry 自带最多 16 个数值的预览
+    /// （`WORKSPACE_PREVIEW_LIMIT`，见 runmat-core `workspace::emit`）。为了
+    /// 让桌面端变量面板足够实用，这里对 **≤4096 元素**的 CPU 变量调用
+    /// `materialize_variable`，把预览提升到最多 128 个数值；更大的矩阵或
+    /// GPU 变量仍使用快照预览，避免每次 run 都复制大缓冲区。
     pub fn variables(&mut self) -> Vec<VariableInfo> {
         let snap = self.session.workspace_snapshot();
         snap.values
             .into_iter()
             .map(|e| {
                 let total_elements = e.shape.iter().product::<usize>().max(1);
-                let preview = e
+                let mut preview = e
                     .preview
                     .as_ref()
                     .map(|p| format_preview(&p.values, p.truncated, total_elements))
                     .unwrap_or_default();
+
+                if !e.is_gpu && total_elements > 16 && total_elements <= WORKSPACE_MATERIALIZE_LIMIT
+                {
+                    let options = WorkspaceMaterializeOptions {
+                        max_elements: WORKSPACE_PREVIEW_ELEMENTS.min(total_elements),
+                        slice: None,
+                    };
+                    if let Ok(materialized) =
+                        futures::executor::block_on(self.session.materialize_variable(
+                            WorkspaceMaterializeTarget::Name(e.name.clone()),
+                            options,
+                        ))
+                    {
+                        if let Some(p) = materialized.preview {
+                            preview = format_preview(&p.values, p.truncated, total_elements);
+                        }
+                    }
+                }
+
                 VariableInfo {
                     name: e.name,
                     class_name: e.class_name,
@@ -508,6 +536,18 @@ mod tests {
         assert!(stats.total_executions >= 3);
         assert_eq!(stats.jit_compiled, 0);
         assert!(stats.interpreter_fallback >= 3);
+    }
+
+    #[test]
+    fn variable_preview_expands_small_vectors_beyond_snapshot_limit() {
+        let mut engine = super::Engine::new().expect("engine");
+        let report = engine.run("<preview-test>", "v = 1:100;");
+        assert!(report.error.is_none(), "{:?}", report.error);
+        let vars = engine.variables();
+        let v = vars.iter().find(|x| x.name == "v").expect("v");
+        // 快照默认只给 16 个值；物化后应覆盖完整 1x100。
+        assert!(v.preview.contains("100"), "preview: {}", v.preview);
+        assert!(v.preview.len() > 200, "preview too short: {}", v.preview);
     }
 
     #[test]

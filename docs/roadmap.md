@@ -137,6 +137,8 @@ Windows 便携 ZIP + 可选 MSI/NSIS；macOS DMG、Linux AppImage/deb 需在对�
   离线可打开、无外部依赖。
 
 ### 下一步
+- ⬜ **RunMat 0.6.3 升级**：截至 2026-10-18 crates.io 与 GitHub（含 `main`）最新均为
+  0.6.2，0.6.3 尚未发布；发布后升级 `runmat-core/runtime/value` 并重跑全量测试与基准。
 - ⛔ **标量循环 JIT（内核受限，K19）**：release 405ms vs MATLAB 0.04ms；
   诊断显示 `used_jit=true` 但 `native_osr_transfers=0`，顶层循环从未 OSR；
   tiering 配置仅 `pub(crate)`，宿主无法调整。需 RunMat 上游修复。

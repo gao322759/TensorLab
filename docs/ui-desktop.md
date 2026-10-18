@@ -120,6 +120,8 @@ for (const w of report.warnings) log(`Warning: ${w.message}`, "warn");
 
 标量不加方括号（`42`）；超 16 元素加 `…`；非数值类型为空 → 显示 `—`。
 
+工作区面板最小宽度 420px；≤4096 元素的变量最多展示 128 个数值。
+
 ### 图窗：`figureSvg()`（约 250 行，非 Plotly）
 
 输入是 `figures[].sceneJson`，真实结构（**与 runmat_plot 的类型声明不一致**，以实测为准）：

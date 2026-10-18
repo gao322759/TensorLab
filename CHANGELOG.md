@@ -12,6 +12,8 @@
 - **桌面端 About/版本显示**：页眉显示 `v0.2.1`；`About` 按钮或 `F1` 打开对话框，
   展示版本（来自 Cargo 包版本）、内核 RunMat 0.6.2、兼容目标 R2026a 与 MIT 许可证。
   GUI smoke 增至 11 条断言。
+- **变量面板实用化**：≤4096 元素的 CPU 变量预览从 16 个数值提升到最多 128 个；
+  右侧工作区最小宽度 340px → 420px，值列不再限制 220px，支持换行展示。
 - **文档站 + 教程**：`docs/site/`（离线 HTML，首页 + 快速上手 / m-script 基础 /
   绘图与桌面端 / MCP 接入四篇教程），无外部依赖。
 - **内核统计与 VM 基线**：`Engine::kernel_stats()` 暴露 jit_compiled /
@@ -34,6 +36,8 @@
   `classdef_is_supported_for_path_requests`（tl-kernel）、`run_file_loads_sibling_classdef`（tl-commands 集成）
 
 ### Changed
+- **RunMat 仍为 0.6.2**：截至 2026-10-18，crates.io 与 GitHub（含 `main`）最新版本均为
+  0.6.2，尚无 0.6.3 可升级。
 - **性能结论（K19）**：JIT 生效但 `native_osr_transfers=0`，release/debug steady 几乎相同，
   且 TensorLab 无法替换内核内置函数；标量循环与数值内核的进一步优化需 RunMat 上游改动。
   启动时间实测中位数 **234ms**（<500ms 目标达成）。详见

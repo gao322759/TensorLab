@@ -9,7 +9,7 @@
 | [文档站](site/index.html) | 离线 HTML 教程站：快速上手 / m-script 基础 / 绘图与桌面端 / MCP 接入 |
 | [architecture.md](architecture.md) | 分层架构（L0-L8）、数据流、IPC 契约、命令注册表 |
 | [development.md](development.md) | 环境搭建、构建、调试、工具链（Windows/MSVC） |
-| [testing.md](testing.md) | 测试策略与 122 个测试的组织方式 |
+| [testing.md](testing.md) | 测试策略与 123 个测试的组织方式 |
 | [contributing.md](contributing.md) | 贡献流程与检查清单 |
 
 ## 使用
