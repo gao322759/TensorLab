@@ -1,0 +1,11 @@
+[package]
+name = "tl-mex"
+description = "TensorLab L6: native extension (MEX-style) dynamic-library bridge"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+libloading = "0.8"

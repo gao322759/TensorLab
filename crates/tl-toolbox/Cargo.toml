@@ -1,0 +1,14 @@
+[package]
+name = "tl-toolbox"
+description = "TensorLab L7: host commands (help/vars/figures/reset/whos/...) via inventory registry"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+tl-kernel = { workspace = true }
+tl-types = { workspace = true }
+tl-mex = { workspace = true }
+inventory = { workspace = true }
+serde = { workspace = true }

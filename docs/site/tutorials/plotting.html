@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>绘图与桌面端 · TensorLab</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="layout">
+<nav>
+  <span class="brand">Tensor<b>Lab</b></span>
+  <div class="tagline">MATLAB-compatible, Rust-powered</div>
+  <div class="group">开始</div>
+  <a class="item" href="../index.html">文档站首页</a>
+  <a class="item" href="getting-started.html">快速上手</a>
+  <div class="group">教程</div>
+  <a class="item" href="scripting.html">m-script 基础</a>
+  <a class="item active" href="plotting.html">绘图与桌面端</a>
+  <a class="item" href="mcp.html">用 MCP 接入 AI</a>
+  <div class="group">参考</div>
+  <a class="item" href="../../README.md">文档索引</a>
+  <a class="item" href="../../cli.md">CLI 参考</a>
+  <a class="item" href="../../toolboxes/">工具箱清单</a>
+</nav>
+<main>
+<div class="content">
+  <h1>绘图与桌面端</h1>
+  <p>TensorLab 的绘图分两段：内核把图窗导出为 <b>FigureScene JSON</b>，桌面端用自研 SVG 渲染器绘制。CLI 只负责执行，不渲染图窗；MCP 则把 FigureScene 原样交给 Agent。</p>
+
+  <h2>基本绘图</h2>
+<pre><code>t = linspace(0, 4*pi, 200);
+
+figure;
+subplot(2, 1, 1);
+plot(t, sin(t));
+title('sin(t)');
+grid on;
+
+subplot(2, 1, 2);
+plot(t, cos(t) .* exp(-t/6));
+title('damped cos');
+xlabel('t');
+ylabel('amplitude');</code></pre>
+  <p>把它保存为 <code>plot_two.m</code> 并在桌面端按 <code>Ctrl+Enter</code>，或在 CLI 运行：</p>
+<pre><code>cargo run -p tl-cli -- run plot_two.m</code></pre>
+  <p>CLI 不会弹窗，但会执行绘图语句；桌面端会把每个 figure 渲染成一张 SVG 卡片。</p>
+
+  <h2>支持的 2D 图型</h2>
+  <table>
+    <tr><th>函数</th><th>说明</th></tr>
+    <tr><td><code>plot</code></td><td>折线图</td></tr>
+    <tr><td><code>scatter</code></td><td>散点</td></tr>
+    <tr><td><code>stem</code></td><td>离散序列</td></tr>
+    <tr><td><code>bar</code></td><td>柱状图</td></tr>
+    <tr><td><code>stairs</code></td><td>阶梯图</td></tr>
+    <tr><td><code>area</code></td><td>面积图</td></tr>
+    <tr><td><code>histogram</code></td><td>直方图</td></tr>
+  </table>
+  <p>布局与标注：<code>figure</code>、<code>subplot</code>、<code>hold on/off</code>、<code>grid</code>、<code>title</code>、<code>xlabel</code>、<code>ylabel</code>、<code>legend</code>、<code>xlim</code>、<code>ylim</code>。</p>
+
+  <h2>桌面端界面</h2>
+  <table>
+    <tr><th>区域</th><th>能力</th></tr>
+    <tr><td>编辑器</td><td>m-script 高亮；<code>Ctrl+Enter</code> 运行；<code>Ctrl+O</code> / <code>Ctrl+S</code> 打开与保存</td></tr>
+    <tr><td>控制台</td><td>REPL、历史（↑/↓）、右键复制/清空、<code>Ctrl+L</code> 清空</td></tr>
+    <tr><td>工作区</td><td>变量名、尺寸、类型、预览值</td></tr>
+    <tr><td>图窗</td><td>FigureScene → SVG；支持多轴与刻度标签</td></tr>
+    <tr><td>About</td><td>页眉 <code>About</code> 或 <code>F1</code>：版本、内核、兼容目标与许可证</td></tr>
+  </table>
+
+  <h3>控制台复制与清空</h3>
+  <ul>
+    <li>选中文本后 <code>Ctrl+C</code>：复制选中内容</li>
+    <li>右键菜单：Copy / Copy All / Select All / Clear Command Window</li>
+    <li><code>Ctrl+L</code>：清空命令窗口（与 MATLAB 的 <code>clc</code> 等价的效果）</li>
+  </ul>
+
+  <h2>FigureScene：给二次渲染留的接口</h2>
+  <p>内核导出的是可直接重放的 JSON：</p>
+<pre><code>{
+  "createdAt": "...",
+  "figure": {
+    "layout": { "axesRows": 2, "axesCols": 1, "axesIndices": [0, 1] },
+    "metadata": { "axesMetadata": [ { "title": "sin(t)", "gridEnabled": true }, ... ] },
+    "plots": [
+      { "kind": "line", "x": [...], "y": [...], "color_rgba": [...],
+        "line_width": 1.5, "line_style": "Solid", "axes_index": 0, "visible": true }
+    ]
+  }
+}</code></pre>
+  <p>桌面端只消费渲染所需字段；导出时已剥离重复的 <code>*_source</code> 数组，因此该载荷不用于无损回灌（见 ADR-007）。</p>
+
+  <h2>已知限制</h2>
+  <ul>
+    <li>3D 图（<code>surf</code> / <code>mesh</code> / <code>plot3</code> / <code>contour</code>）内核可导出，桌面端尚未渲染。</li>
+    <li>无缩放 / 平移 / hover tooltip / 图例点击；大数据没有 WebGL 加速。</li>
+    <li>图像工具箱的 <code>imagesc</code> 等按当前渲染器能力展示。</li>
+  </ul>
+
+  <div class="pager">
+    <a href="scripting.html">← m-script 基础</a>
+    <a href="mcp.html">用 MCP 接入 AI →</a>
+  </div>
+  <footer>TensorLab · 绘图与桌面端</footer>
+</div>
+</main>
+</div>
+</body>
+</html>

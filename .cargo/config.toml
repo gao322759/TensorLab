@@ -1,0 +1,4 @@
+[alias]
+# `cargo xtask <cmd>` → `cargo run --package xtask -- <cmd>`
+# 用于分层校验：cargo xtask layers
+xtask = "run --package xtask --"

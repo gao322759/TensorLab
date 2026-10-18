@@ -1,0 +1,9 @@
+[package]
+name = "tl-linalg"
+description = "TensorLab L1: pure-Rust linalg (row-major matrix, LU solve/det/inv) — no kernel dependency"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]

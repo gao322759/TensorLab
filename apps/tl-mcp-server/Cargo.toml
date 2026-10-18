@@ -1,0 +1,19 @@
+[package]
+name = "tl-mcp-server"
+description = "TensorLab MCP server — stdio JSON-RPC for AI agents"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "tl-mcp-server"
+path = "src/main.rs"
+
+[dependencies]
+tl-commands = { workspace = true }
+tl-kernel = { workspace = true }
+tl-types = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

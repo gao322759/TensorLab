@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>用 MCP 接入 AI · TensorLab</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="layout">
+<nav>
+  <span class="brand">Tensor<b>Lab</b></span>
+  <div class="tagline">MATLAB-compatible, Rust-powered</div>
+  <div class="group">开始</div>
+  <a class="item" href="../index.html">文档站首页</a>
+  <a class="item" href="getting-started.html">快速上手</a>
+  <div class="group">教程</div>
+  <a class="item" href="scripting.html">m-script 基础</a>
+  <a class="item" href="plotting.html">绘图与桌面端</a>
+  <a class="item active" href="mcp.html">用 MCP 接入 AI</a>
+  <div class="group">参考</div>
+  <a class="item" href="../../README.md">文档索引</a>
+  <a class="item" href="../../cli.md">CLI 参考</a>
+  <a class="item" href="../../toolboxes/">工具箱清单</a>
+</nav>
+<main>
+<div class="content">
+  <h1>用 MCP 接入 AI</h1>
+  <p><code>tl-mcp-server</code> 是一个 stdio 的 MCP（Model Context Protocol）服务器。Claude、Cursor 等 Agent 可以调用它执行 m 代码、读取变量，并拿到可直接理解的图窗 JSON。</p>
+
+  <h2>启动</h2>
+<pre><code>cargo run -p tl-mcp-server</code></pre>
+  <p>服务器从 stdin 逐行读取 JSON-RPC 2.0，向 stdout 写响应；日志走 stderr。协议版本为 <code>2025-06-18</code>。</p>
+
+  <h2>客户端配置</h2>
+  <p>在 MCP 客户端配置中加入（路径换成你的 release 可执行文件）：</p>
+<pre><code>{
+  "mcpServers": {
+    "tensorlab": {
+      "command": "F:\\软件开发\\TensorLab\\target\\release\\tl-mcp-server.exe"
+    }
+  }
+}</code></pre>
+
+  <h2>五个工具</h2>
+  <table>
+    <tr><th>工具</th><th>参数</th><th>返回</th></tr>
+    <tr><td><code>run</code></td><td><code>{ "path": "demos/hello_world.m" }</code></td><td>控制台文本</td></tr>
+    <tr><td><code>eval</code></td><td><code>{ "code": "2 + 3*4" }</code></td><td>控制台文本（含 <code>ans = 14</code>）</td></tr>
+    <tr><td><code>plot</code></td><td><code>{ "code": "figure; plot(1:5);" }</code></td><td>控制台文本 + <code>figures:</code> 后的 FigureScene JSON 数组</td></tr>
+    <tr><td><code>vars</code></td><td><code>{}</code></td><td>变量表的 JSON 数组</td></tr>
+    <tr><td><code>reset</code></td><td><code>{}</code></td><td>清空工作区</td></tr>
+  </table>
+
+  <h2>一次完整会话</h2>
+  <p>请求（每行一个 JSON）：</p>
+<pre><code>{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"demo","version":"0.0.1"}}}
+{"jsonrpc":"2.0","method":"notifications/initialized"}
+{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"eval","arguments":{"code":"A = magic(3); sum(A)"}}}
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"plot","arguments":{"code":"t=linspace(0,2*pi,100); figure; plot(t,sin(t));"}}}</code></pre>
+  <p>要点：</p>
+  <ul>
+    <li><code>initialize</code> 之后客户端发送 <code>notifications/initialized</code>；通知<b>不产生响应</b>。</li>
+    <li>所有工具结果都是 MCP 的 content 数组：<code>[{ "type": "text", "text": "..." }]</code>。</li>
+    <li><code>plot</code> 的文本在 <code>figures:</code> 之后附带 FigureScene JSON，Agent 可直接读取曲线数据。</li>
+    <li>未知工具/方法不会崩溃：未知方法返回 <code>result: null</code>，未知工具返回错误文本。</li>
+  </ul>
+
+  <h2>适合 Agent 的工作流</h2>
+  <ol>
+    <li>用 <code>eval</code> 做小步计算，确认中间结果。</li>
+    <li>用 <code>plot</code> 生成图窗，读取 FigureScene 中的 <code>x</code>/<code>y</code> 做判断。</li>
+    <li>用 <code>run</code> 执行落盘脚本，复现完整流程。</li>
+    <li>用 <code>vars</code> 检查工作区，用 <code>reset</code> 隔离下一次实验。</li>
+  </ol>
+
+  <div class="callout">
+    <strong>安全边界：</strong>MCP 服务器在本机执行任意 m 代码，等同于本地代码执行。只连接可信 Agent，不要把 stdio 暴露到网络。
+  </div>
+
+  <div class="pager">
+    <a href="plotting.html">← 绘图与桌面端</a>
+    <a href="../index.html">文档站首页 →</a>
+  </div>
+  <footer>TensorLab · MCP 接入</footer>
+</div>
+</main>
+</div>
+</body>
+</html>

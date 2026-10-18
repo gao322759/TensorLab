@@ -1,0 +1,29 @@
+[package]
+name = "tl-desktop"
+description = "TensorLab desktop app — Tauri 2 shell over the Engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+default-run = "tensorlab-desktop"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tl-commands = { workspace = true }
+tl-types = { workspace = true }
+tauri-plugin-dialog = "2"
+
+[lib]
+name = "tl_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+# bin 名与 package 名分离：本地杀软（360/火绒）偶发锁死无签名 debug exe，
+# 换名重链即可绕过被锁文件；`cargo run -p tl-desktop` 由 default-run 指回。
+[[bin]]
+name = "tensorlab-desktop"
+path = "src/main.rs"

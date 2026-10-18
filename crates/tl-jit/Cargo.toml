@@ -1,0 +1,12 @@
+[package]
+name = "tl-jit"
+description = "TensorLab L5: JIT statistics surfacing from the kernel"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+tl-kernel = { workspace = true }
+tl-types = { workspace = true }
+serde = { workspace = true }

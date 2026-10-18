@@ -1,0 +1,12 @@
+[package]
+name = "tl-interpreter"
+description = "TensorLab L4: Outcome post-processing — derive console text, help topics, run bookkeeping"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+tl-kernel = { workspace = true }
+tl-types = { workspace = true }
+anyhow = { workspace = true }

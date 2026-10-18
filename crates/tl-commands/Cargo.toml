@@ -1,0 +1,18 @@
+[package]
+name = "tl-commands"
+description = "TensorLab L8: application facade — one entry for GUI/CLI/MCP (run/eval/host-commands/demos)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+tl-kernel = { workspace = true }
+tl-types = { workspace = true }
+tl-toolbox = { workspace = true }
+tl-interpreter = { workspace = true }
+anyhow = { workspace = true }
+serde_json = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

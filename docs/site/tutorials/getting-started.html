@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>快速上手 · TensorLab</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="layout">
+<nav>
+  <span class="brand">Tensor<b>Lab</b></span>
+  <div class="tagline">MATLAB-compatible, Rust-powered</div>
+  <div class="group">开始</div>
+  <a class="item" href="../index.html">文档站首页</a>
+  <a class="item active" href="getting-started.html">快速上手</a>
+  <div class="group">教程</div>
+  <a class="item" href="scripting.html">m-script 基础</a>
+  <a class="item" href="plotting.html">绘图与桌面端</a>
+  <a class="item" href="mcp.html">用 MCP 接入 AI</a>
+  <div class="group">参考</div>
+  <a class="item" href="../../README.md">文档索引</a>
+  <a class="item" href="../../cli.md">CLI 参考</a>
+  <a class="item" href="../../toolboxes/">工具箱清单</a>
+</nav>
+<main>
+<div class="content">
+  <h1>快速上手</h1>
+  <p>目标：在本机构建 TensorLab，运行一个 demo，然后进入 REPL 执行自己的第一段 m 代码。</p>
+
+  <h2>1. 环境要求</h2>
+  <table>
+    <tr><th>依赖</th><th>说明</th></tr>
+    <tr><td>Rust stable</td><td>2021 edition；建议使用最新 stable 工具链</td></tr>
+    <tr><td>VS Build Tools（Windows）</td><td>MSVC 链接器 + 自带 CMake；HDF5 静态构建需要</td></tr>
+    <tr><td>Node.js（可选）</td><td>仅桌面端 GUI 冒烟测试需要；缺失时该测试自动跳过</td></tr>
+  </table>
+
+  <div class="callout warn">
+    <strong>冷构建较慢。</strong>内核依赖树包含 parser / HIR / MIR / VM / Cranelift / HDF5，首次全量构建可能需要较长时间；后续增量构建会快很多。
+  </div>
+
+  <h2>2. 构建与自检</h2>
+<pre><code>cargo check
+cargo test --workspace --exclude tl-desktop -j 2
+cargo xtask layers</code></pre>
+  <p><code>-j 2</code> 可以避免并发链接冲突；<code>cargo xtask layers</code> 校验 L0-L8 分层规则。</p>
+
+  <h2>3. 运行第一个脚本</h2>
+<pre><code>cargo run -p tl-cli -- run demos/hello_world.m</code></pre>
+  <p>成功时脚本输出写到 stdout，末尾会有一行执行状态（如 <code>[VM 12.3 ms]</code>）写到 stderr。这样重定向 stdout 时不会混入状态行。</p>
+  <p>换一个更有代表性的：</p>
+<pre><code>cargo run -p tl-cli -- run demos/plot_demo.m
+cargo run -p tl-cli -- run demos/fft_demo.m
+cargo run -p tl-cli -- run demos/optim_demo.m</code></pre>
+
+  <h2>4. 进入 REPL</h2>
+<pre><code>cargo run -p tl-cli</code></pre>
+<pre><code>&gt;&gt; x = 42
+x = 42
+&gt;&gt; A = magic(4);
+&gt;&gt; vars
+  NAME           SIZE            BYTES  CLASS
+  x             1x1                  8  double
+  A             4x4                128  double
+&gt;&gt; help
+&gt;&gt; exit</code></pre>
+  <p>REPL 支持宿主命令 <code>vars</code> / <code>clear</code> / <code>help</code> / <code>figures</code> / <code>version</code>，其余输入交给内核执行。<code>↑</code> / <code>↓</code> 可翻历史（桌面端控制台同样支持）。</p>
+
+  <h2>5. 写自己的脚本</h2>
+  <p>新建 <code>my_first.m</code>：</p>
+<pre><code>A = [1 2; 3 4];
+b = [5; 11];
+x = A \ b;
+fprintf('x = [%.2f %.2f]\n', x(1), x(2));
+
+t = linspace(0, 2*pi, 200);
+figure;
+plot(t, sin(t));
+title('my first plot');
+grid on;</code></pre>
+<pre><code>cargo run -p tl-cli -- run my_first.m</code></pre>
+  <p>输出应为：</p>
+<pre><code>x = [1.00 2.00]</code></pre>
+
+  <h2>6. 打开桌面端</h2>
+<pre><code>cargo build -p tl-desktop</code></pre>
+  <p>桌面端提供编辑器（Ctrl+Enter 运行）、变量面板、控制台 REPL 和 SVG 图窗。控制台支持右键 Copy / Copy All / Select All / Clear Command Window，以及 <code>Ctrl+L</code> 清空。</p>
+
+  <h2>常见问题</h2>
+  <table>
+    <tr><th>现象</th><th>处理</th></tr>
+    <tr><td>新编译的 exe 被拒绝访问</td><td>杀软可能短暂锁定可执行文件；等待后重试，或把 <code>target/</code> 加入白名单</td></tr>
+    <tr><td><code>cargo test</code> 链接失败</td><td>使用 <code>-j 1</code> 或 <code>-j 2</code> 串行化链接</td></tr>
+    <tr><td>一次性运行显示 <code>[VM ...]</code></td><td>预期行为：JIT 分层编译需要同一段代码重复执行；REPL / 桌面端 / bench 才会进入 JIT</td></tr>
+  </table>
+
+  <div class="pager">
+    <a href="../index.html">← 文档站首页</a>
+    <a href="scripting.html">m-script 基础 →</a>
+  </div>
+  <footer>TensorLab · 快速上手</footer>
+</div>
+</main>
+</div>
+</body>
+</html>

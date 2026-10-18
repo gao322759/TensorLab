@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TensorLab 文档站</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="layout">
+<nav>
+  <span class="brand">Tensor<b>Lab</b></span>
+  <div class="tagline">MATLAB-compatible, Rust-powered</div>
+  <div class="group">开始</div>
+  <a class="item active" href="index.html">文档站首页</a>
+  <a class="item" href="tutorials/getting-started.html">快速上手</a>
+  <div class="group">教程</div>
+  <a class="item" href="tutorials/scripting.html">m-script 基础</a>
+  <a class="item" href="tutorials/plotting.html">绘图与桌面端</a>
+  <a class="item" href="tutorials/mcp.html">用 MCP 接入 AI</a>
+  <div class="group">参考</div>
+  <a class="item" href="../README.md">文档索引</a>
+  <a class="item" href="../cli.md">CLI 参考</a>
+  <a class="item" href="../toolboxes/">工具箱清单</a>
+</nav>
+<main>
+<div class="content">
+  <section class="hero">
+    <h1>Tensor<b style="color:var(--fg)">Lab</b> <span>文档站</span></h1>
+    <p>用 Rust 构建的 MATLAB 兼容科学计算平台：m-script 解释器、CLI、Tauri 桌面端与 MCP 服务器共享同一个内核。</p>
+    <div class="badges">
+      <span class="badge">RunMat 0.6.2 内核</span>
+      <span class="badge">m-script 语法</span>
+      <span class="badge">5 个工具箱</span>
+      <span class="badge">离线 · 无 CDN</span>
+    </div>
+  </section>
+
+  <h2>从这里开始</h2>
+  <div class="cards">
+    <a class="card" href="tutorials/getting-started.html">
+      <div class="title">快速上手 →</div>
+      <div class="desc">构建、运行 demo、进入 REPL，五分钟看到第一张图。</div>
+    </a>
+    <a class="card" href="tutorials/scripting.html">
+      <div class="title">m-script 基础 →</div>
+      <div class="desc">矩阵、1-based 索引、控制流、函数文件与多输出。</div>
+    </a>
+    <a class="card" href="tutorials/plotting.html">
+      <div class="title">绘图与桌面端 →</div>
+      <div class="desc">plot / subplot / FigureScene，以及控制台的复制与清空。</div>
+    </a>
+    <a class="card" href="tutorials/mcp.html">
+      <div class="title">MCP 接入 AI →</div>
+      <div class="desc">让 Claude / Cursor 直接执行 m 代码并读取图窗数据。</div>
+    </a>
+  </div>
+
+  <h2>一条命令开始</h2>
+<pre><code>cargo run -p tl-cli -- run demos/plot_demo.m</code></pre>
+  <p>仓库自带 10 个 demo 脚本，覆盖线性代数、FFT、信号、图像、统计、优化与控制。它们同时是验收标准：任何时候都必须零错误运行。</p>
+
+  <h2>三个入口，同一个内核</h2>
+  <table>
+    <tr><th>入口</th><th>用途</th><th>启动方式</th></tr>
+    <tr><td>CLI</td><td>脚本执行、REPL、性能基准</td><td><code>cargo run -p tl-cli</code></td></tr>
+    <tr><td>桌面端</td><td>编辑器 + 变量面板 + 控制台 + SVG 图窗</td><td><code>cargo build -p tl-desktop</code></td></tr>
+    <tr><td>MCP</td><td>AI Agent 通过 stdio 调用</td><td><code>cargo run -p tl-mcp-server</code></td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>设计原则：</strong>Engine-first / headless-first。任何功能先在无头 Engine 中可用，桌面 UI 只是它的一个视图；CLI、桌面端与 MCP 不会各自实现一套语义。
+  </div>
+
+  <h2>深入阅读</h2>
+  <ul>
+    <li><a href="../../AGENTS.md">AGENTS.md</a>：项目宪法（分层架构、IPC 契约、clean-room 红线）</li>
+    <li><a href="../architecture.md">architecture.md</a>：L0-L8 分层与数据流</li>
+    <li><a href="../gaps.md">gaps.md</a>：已知差距与内核限制（K 系列）</li>
+    <li><a href="../jit-benchmarks.md">jit-benchmarks.md</a>：JIT 基线与 MATLAB 对标</li>
+  </ul>
+
+  <footer>TensorLab · MIT License · 文档站可离线打开，无外部依赖。</footer>
+</div>
+</main>
+</div>
+</body>
+</html>

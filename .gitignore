@@ -1,0 +1,22 @@
+# Rust build output
+/target
+**/*.rs.bk
+
+# Release artifacts (published via GitHub Releases)
+/dist/
+*.msi
+
+# Historical snapshots (kept out of the public source tree)
+/frozen/
+
+# Generated Tauri ACL/schema files
+/apps/tl-desktop/src-tauri/gen/
+
+# Editor / OS noise
+.vscode/
+.idea/
+.trae-html-share-packages/
+node_modules/
+*.log
+.DS_Store
+Thumbs.db

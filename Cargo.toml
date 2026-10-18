@@ -1,0 +1,57 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/tl-types",
+    "crates/tl-linalg",
+    "crates/tl-kernel",
+    "crates/tl-parser",
+    "crates/tl-interpreter",
+    "crates/tl-jit",
+    "crates/tl-mex",
+    "crates/tl-toolbox",
+    "crates/tl-commands",
+    "apps/tl-cli",
+    "apps/tl-mcp-server",
+    "apps/tl-desktop/src-tauri",
+    "tools/xtask",
+]
+
+[workspace.package]
+version = "0.2.1"
+edition = "2021"
+license = "MIT"
+authors = ["TensorLab Team"]
+
+[workspace.dependencies]
+# ---- TensorLab 内核：RunMat 0.6.2（见 docs/kernel-notes.md）----
+runmat-core = "0.6.2"
+runmat-runtime = "0.6.2"
+runmat-value = "0.6.2"
+
+# ---- 内部 crate（L0-L8）----
+tl-types = { path = "crates/tl-types" }
+tl-linalg = { path = "crates/tl-linalg" }
+tl-kernel = { path = "crates/tl-kernel" }
+tl-parser = { path = "crates/tl-parser" }
+tl-interpreter = { path = "crates/tl-interpreter" }
+tl-jit = { path = "crates/tl-jit" }
+tl-mex = { path = "crates/tl-mex" }
+tl-toolbox = { path = "crates/tl-toolbox" }
+tl-commands = { path = "crates/tl-commands" }
+
+# ---- 通用依赖 ----
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+futures = "0.3"
+uuid = { version = "1", features = ["v4"] }
+inventory = "0.3"
+thiserror = "2"
+toml = "0.8"
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

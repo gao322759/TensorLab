@@ -1,0 +1,12 @@
+[package]
+name = "tl-types"
+description = "TensorLab L0: display formatting for RunMat values + serde UI payload types"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+runmat-value = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

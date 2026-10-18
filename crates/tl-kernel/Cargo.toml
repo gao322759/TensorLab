@@ -1,0 +1,18 @@
+[package]
+name = "tl-kernel"
+description = "TensorLab L2: Engine facade over RunMatSession — run/cancel/vars/figures"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+runmat-core = { workspace = true }
+runmat-runtime = { workspace = true }
+runmat-value = { workspace = true }
+# runmat-runtime 在 Windows 上非可选依赖 HDF5；启用 static（随包源码 + cmake 本地构建）
+hdf5-metno = { version = "0.13", features = ["static"] }
+tl-types = { workspace = true }
+anyhow = { workspace = true }
+futures = { workspace = true }
+serde_json = { workspace = true }

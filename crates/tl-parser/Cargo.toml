@@ -1,0 +1,11 @@
+[package]
+name = "tl-parser"
+description = "TensorLab L3: editor-facing tokenizer for syntax highlighting (execution parser lives in the kernel)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+tl-types = { workspace = true }
+serde = { workspace = true }

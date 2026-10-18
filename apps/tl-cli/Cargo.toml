@@ -1,0 +1,19 @@
+[package]
+name = "tl-cli"
+description = "TensorLab CLI — REPL and script runner"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "tensorlab"
+path = "src/main.rs"
+
+[dependencies]
+tl-commands = { workspace = true }
+tl-kernel = { workspace = true }
+tl-toolbox = { workspace = true }
+tl-types = { workspace = true }
+anyhow = { workspace = true }
+serde_json = { workspace = true }
