@@ -39,6 +39,7 @@
 | [decisions.md](decisions.md) | 架构决策记录（ADR） |
 | [releasing.md](releasing.md) | 发布流程与冻结操作 |
 | [releases/v0.1.md](releases/v0.1.md) | 🔒 v0.1.0 发布说明与冻结声明 |
+| [releases/v0.2.1.md](releases/v0.2.1.md) | ✅ v0.2.1 发行说明（Windows MSI / 便携 ZIP） |
 | [releases/v0.2.md](releases/v0.2.md) | 🔒 v0.2.0 发布说明与冻结声明 |
 | [../CHANGELOG.md](../CHANGELOG.md) | 变更日志 |
 

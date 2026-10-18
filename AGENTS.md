@@ -81,7 +81,7 @@ cargo run -p tl-mcp-server        # 启动 MCP stdio 服务器
 |------|--------|------|
 | v0.1 | Tauri 窗口 + 编辑器 + 变量面板 + 解释器 + 绘图 + 5 demo + CLI + MCP | 🔒 **已发行并冻结**（v0.1.0，2026-10-16，94 测试全绿） |
 | v0.2 | 5 个 MVP 工具箱（锚定 MATLAB R2026a）+ MEX 加载桥 + GUI 自动化测试 | 🔒 **已冻结**（v0.2.0，2026-10-17，102 测试全绿 + 10 demo；安装包不在本次范围） |
-| v0.2.1 | Windows MSI 打包 + 测试提速（< 15 分钟目标）+ 对抗性/golden/GUI 结构测试 | ✅ **已发行**（2026-10-17，119 Rust 测试 + 8 GUI 断言；MSI 84.41 MiB） |
+| v0.2.1 | Windows MSI 打包 + 测试提速（< 15 分钟目标）+ 对抗性/golden/GUI 结构测试 | ✅ **已发行**（2026-10-18 重建，122 Rust 测试 + 11 GUI 断言；MSI 84.41 MiB） |
 | v0.3 | Cranelift JIT 启用 + 性能对标 MATLAB 0.5x（耗时 ≤ 2× MATLAB） | 进行中（2026-10-17 启动；release 对标 MATLAB R2023b：matmul 68x、FFT 30x、向量数学 8.7x、标量循环 10125x、函数调用 39870x，0.5x 未达成；见 docs/jit-benchmarks.md） |
 
 > v0.1.0 的契约快照与冻结范围见 [docs/releases/v0.1.md](docs/releases/v0.1.md)；
