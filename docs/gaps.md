@@ -76,7 +76,7 @@
 | K16 | **切片后缀转置被忽略** | **仍复现**：`x(2:end-1)'` 返回列向量（`30x1`），完整 `x'` 正常（`1x32`），导致隐式广播成矩阵。规避：逐元素循环或显式构造；canary `k16_slice_suffix_transpose_is_ignored`；坑 28 |
 | K17 | **标量归约/单根返回差异** | **已对齐 MATLAB**：`max([1 5 3])` 返回 `1x1` 标量；`roots([1 -2])` 返回 `1x1`，`p(1)` 可用。canary `k17_scalar_reduction_and_single_root_are_matlab_compatible` 防回退；坑 29 |
 | K18 | **struct 的残留限制** | 无 `isstruct`/`iscell`（用 `strcmp(class(x),...)`）；结构体数组不能自动扩展（`s(2).a=2` 报 `Struct subscript out of bounds`），只能用 `struct('f',{...})` 构造；坑 31 |
-| K19 | **性能上限由 RunMat 执行层决定** | release 对标 MATLAB R2023b：`script_loop_5k` 405ms vs 0.04ms、`function_calls_100` 917ms vs 0.023ms、`matmul_300` 236ms vs 3.5ms、`fft_16k` 83ms vs 2.8ms、`vector_math_100k` 139ms vs 16ms。诊断：`used_jit=true`、`native_osr_transfers=0`（顶层脚本循环从未 OSR）、`vectorized_native_regions>0`；release/debug steady 几乎相同；20 次预热（越 specialized 阈值 16）无改善。TensorLab 无法替换内置实现（K12）且 tiering 配置仅 `pub(crate)` 测试接口，因此标量循环/数值内核的进一步优化需上游改动。详见 [jit-benchmarks.md](jit-benchmarks.md) §四 |
+| K19 | **性能上限由 RunMat 执行层决定** | release 对标 MATLAB R2023b：`script_loop_5k` 405ms vs 0.04ms、`function_calls_100` 917ms vs 0.023ms、`matmul_300` 236ms vs 3.5ms、`fft_16k` 83ms vs 2.8ms、`vector_math_100k` 139ms vs 16ms。诊断：`used_jit=true`、`native_osr_transfers=0`（顶层脚本循环从未 OSR）、`vectorized_native_regions>0`；release/debug steady 几乎相同；20 次预热（越 specialized 阈值 16）无改善。函数调用路径拆解：跨文件空函数约 **4.4ms/次**，同文件局部 helper 省约 25%，`@` 句柄无收益；根因是 `session/run.rs` 每次调用都做文件搜索 + 读源码 + project/companion 发现。TensorLab 无法替换内置实现（K12）且 tiering 配置仅 `pub(crate)` 测试接口，因此标量循环/数值内核的进一步优化需上游改动。详见 [jit-benchmarks.md](jit-benchmarks.md) §四/§4.1 |
 
 ## E. 语义层面的注意点
 

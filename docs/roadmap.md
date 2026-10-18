@@ -143,7 +143,10 @@ Windows 便携 ZIP + 可选 MSI/NSIS；macOS DMG、Linux AppImage/deb 需在对�
   诊断显示 `used_jit=true` 但 `native_osr_transfers=0`，顶层循环从未 OSR；
   tiering 配置仅 `pub(crate)`，宿主无法调整。需 RunMat 上游修复。
 - ⬜ **函数调用路径 JIT（本轮不做）**：`function_calls_100` release 917ms；
-  JIT 编译调用方，但文件函数分派/边界开销仍占主导。
+  拆解显示跨文件空函数约 4.4ms/次，函数体循环比顶层慢 2.2–3.4x，`@` 句柄无收益。
+  宿主可做：热路径 helper 改同文件局部函数、精确 `addpath`、合并高频跨文件调用；
+  上游需：path/metadata 缓存、direct-call 绑定、函数体 OSR。详见
+  [jit-benchmarks.md](jit-benchmarks.md) §4.1。
 - ⛔ **数值内核快速路径（内核受限，K19）**：matmul 68x、FFT 30x、向量数学 8.7x；
   TensorLab 无内置函数注册 API（K12），无法替换 `*` / `fft` / `sin` 实现。
 - ⬜ **包体 < 30MB**（本轮不做）：当前 release 二进制约 100MB 量级，需 strip/LTO/裁剪内核特性。

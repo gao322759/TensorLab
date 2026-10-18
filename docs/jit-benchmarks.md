@@ -138,6 +138,53 @@ executions=77 jit_compiled=30 interpreter_fallback=47 osr=0 vectorized_regions=2
 6. 因此 **标量循环与数值内核的进一步优化必须以 RunMat 上游改动为前提**，
    宿主侧优化在此停止（记录为 [gaps.md](gaps.md) K19）。
 
+### 4.1 函数调用路径拆解（2026-10-18，debug）
+
+为了区分「调用分派」与「函数体执行」，用独立探针测得（10 次预热 + 5 次中位数）：
+
+| workload | steady_ms | 说明 |
+|---|---:|---|
+| `script_loop_5k` | 306–475 | 顶层 5000 次循环（基线） |
+| `empty_calls_100` | **439** | 100 次跨文件调用空函数 → **约 4.4ms/次分派开销** |
+| `loop_calls_100` | 1591 | 100 次调用 × 每次 50 次循环 |
+| `one_loop_5k` | 1027 | 一次调用内 5000 次循环（纯函数体） |
+| `builtin_calls_100` | 46 | 100 次内置 `sum` 调用 |
+| `handle_empty_100` | 449 | `@` 句柄调用空函数（与直接调用相同） |
+| `handle_calls_100` | 1570 | `@` 句柄调用循环函数（无收益） |
+| `outer_local_100` | **1198** | 外层函数调用同文件局部 helper（100 次） |
+
+结论：
+
+1. **跨文件调用空函数约 4.4ms/次**，`function_calls_100` 的 1591ms 中约 440ms 是纯分派。
+2. **函数体循环比顶层循环慢 2.2–3.4x**（1027ms vs 306–475ms / 5000 次）。
+   函数体内的循环没有获得顶层循环同等的 native 优化（`native_osr_transfers=0`）。
+3. **`@` 函数句柄不缓存解析**：句柄调用与直接调用耗时一致，不能作为优化手段。
+4. **同文件局部 helper 比跨文件调用省约 25%**（1591 → 1198ms）；内置函数调用快约 10x。
+5. 根因在 `runmat-core 0.6.2` 的动态函数路径：每次调用都会
+   `find_file_with_extensions` → `read_source_text_async` →
+   `discover_project_compilation_context_async`，之后才查 `dynamic_function_cache`；
+   缓存只避免重新 parse/lowering，未避免文件读取与 project/companion 目录扫描
+   （`session/run.rs::load_dynamic_function`）。
+
+优化路线（按收益排序）：
+
+**A. RunMat 上游（主要收益）**
+1. 缓存 `name → path` 解析结果，按 search-path epoch 失效；
+2. 先比较 mtime/size，源码未变时跳过 `read_source_text_async`，直接命中已编译 registry；
+3. 按目录 + project revision 缓存 `ProjectCompilationContext` / companion 发现，避免每次重读同目录所有 `.m`；
+4. 首次解析后绑定 callable ID，后续走 direct-call，跳过路径搜索与项目发现；
+5. 让函数体循环参与 JIT/OSR（当前 `osr=0`），至少达到顶层循环的每迭代成本。
+
+**B. TensorLab 宿主（可立即做）**
+1. 热路径 helper 改为**同文件局部函数**（本次探针已验证约 25% 收益）；
+2. 不要用 `@` 句柄替代直接调用来“优化”（无收益）；
+3. 合并工具箱高频跨文件调用；`addpath` 使用精确目录而非大范围 `genpath`；
+4. 对重复执行的固定函数，使用 `compile_executable_unit` + `invoke_executable`
+   （entrypoint 探针已显示约 2x 收益）。
+
+预期：修掉分派后 `loop_calls_100` 可从 ~1.6s 降到 ~1.0s；函数体 JIT 后可接近
+顶层循环的 ~0.3–0.5s；与 MATLAB 的 0.023ms 仍有数量级差距，但可获得 3–5x 提升。
+
 ## 五、启动时间（2026-10-18）
 
 目标：**< 500ms**。测量命令（release，Windows PowerShell）：
