@@ -39,6 +39,7 @@ tensorlab run demos/fft_demo.m
 ```bash
 tensorlab bench            # JIT on
 tensorlab bench --no-jit   # 解释器-only 基线
+tensorlab bench --aot      # 额外测量固定函数的 AOT 重复调用（compile_executable_unit）
 ```
 
 在同一个 `Engine` 会话内重复执行固定 workload：前 10 次预热（触发 RunMat tiering），
@@ -56,6 +57,7 @@ vector_math_100k        292.0      154.0     JIT     1.90x
 
 注：JIT 采用分层编译，前 10 次为预热；steady_ms 取最后 5 次的中位数。
 内核统计：executions=77 jit_compiled=30 interpreter_fallback=47 osr=0 vectorized_regions=20400
+AOT function calls: 100 × tl_bench_loop(50) = 572.3 ms total, 5.723 ms/call (sum=127500)
 ```
 
 循环 workload 的上界带 `rand()` 依赖（`n = 5000 + (rand() > 2)`），

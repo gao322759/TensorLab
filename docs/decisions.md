@@ -206,8 +206,8 @@ path = "src/main.rs"
 3. **以纯 m-script `.m` 文件交付，经 `addpath` 挂载** —— 实测 RunMat 支持
    `addpath`/`genpath`/`which`，加入路径的 `.m` 函数可被调用且跨执行持久。
 
-**决策**：采用方案 3。新增仓库根 `toolbox/<领域>/<fn>.m`，`tl-toolbox`（L7）在会话
-初始化时对其执行 `addpath(genpath(...))`。三个 App 经 Engine 引导自动挂载。
+**决策**：采用方案 3。新增仓库根 `toolbox/<领域>/<fn>.m`，`tl-kernel`（L2）在会话
+初始化时枚举 `toolbox/` 子目录并逐目录 `addpath`（不再用 `genpath`）。三个 App 经 Engine 引导自动挂载。
 
 **影响**：
 - ✅ 零内核改动、零 fork；天然落在 L7；clean-room（m 代码可追溯教科书）

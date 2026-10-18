@@ -31,6 +31,16 @@ pub struct Engine {
     session: RunMatSession,
 }
 
+/// 已编译的固定函数单元。
+///
+/// 对同一个函数反复调用时，用 `Engine::compile_function_*` 编译一次，
+/// 再用 `invoke_compiled_function` 重复执行，可绕过动态文件解析
+/// （实测约 2–3x 于普通 `Engine::run` 的函数调用路径）。
+pub struct CompiledFunction {
+    unit: runmat_core::ExecutableUnit,
+    function: String,
+}
+
 /// 内核执行统计（JIT/VM 诊断用，不进入冻结的 IPC 契约）。
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct KernelStats {
@@ -59,21 +69,31 @@ impl Engine {
 
     /// 把仓库根 `toolbox/` 挂到内核搜索路径（见 docs/decisions.md ADR-012）。
     ///
-    /// 目录下的纯 m-script 函数（`toolbox/<domain>/<fn>.m`）经 `addpath(genpath(...))`
+    /// 目录下的纯 m-script 函数（`toolbox/<domain>/<fn>.m`）经逐目录 `addpath`
     /// 后即可被 m 代码调用，用于补齐内核未提供的 R2026a 函数。
+    /// 这里显式枚举子目录，而不是 `genpath`：避免扫描隐藏/临时目录，也让搜索
+    /// 路径在启动时就确定下来（函数调用路径无需再大范围遍历）。
     /// 找不到目录时静默跳过（发行物可能不含源目录）。
     fn mount_toolbox(&mut self) {
-        if let Some(dir) = toolbox_dir() {
-            let path = dir.replace('\\', "/");
-            let src = format!("addpath(genpath('{path}'));");
-            let report = self.run("<toolbox>", &src);
-            if report.error.is_some() {
-                // 非致命：工具箱缺失不应阻断引擎可用性
-                let _ = std::io::Write::write_all(
-                    &mut std::io::stderr(),
-                    b"warning: failed to mount m-script toolbox directory\n",
-                );
-            }
+        let Some(dir) = toolbox_dir() else {
+            return;
+        };
+        let dirs = collect_toolbox_dirs(std::path::Path::new(&dir));
+        if dirs.is_empty() {
+            return;
+        }
+        let mut src = String::new();
+        for d in dirs {
+            let path = d.to_string_lossy().replace('\\', "/");
+            src.push_str(&format!("addpath('{path}');\n"));
+        }
+        let report = self.run("<toolbox>", &src);
+        if report.error.is_some() {
+            // 非致命：工具箱缺失不应阻断引擎可用性
+            let _ = std::io::Write::write_all(
+                &mut std::io::stderr(),
+                b"warning: failed to mount m-script toolbox directory\n",
+            );
         }
     }
 
@@ -146,6 +166,58 @@ impl Engine {
             interpreter_fallback: s.interpreter_fallback,
             native_osr_transfers: s.native_osr_transfers,
             vectorized_native_regions: s.vectorized_native_regions,
+        }
+    }
+
+    /// 编译磁盘上的固定函数，供后续重复调用。
+    pub fn compile_function_path(
+        &mut self,
+        path: &str,
+        function: &str,
+    ) -> anyhow::Result<CompiledFunction> {
+        let source = std::fs::read_to_string(path)?;
+        self.compile_function_source(path, &source, function)
+    }
+
+    /// 编译一段源码中的固定函数，供后续重复调用。
+    pub fn compile_function_source(
+        &mut self,
+        source_name: &str,
+        source: &str,
+        function: &str,
+    ) -> anyhow::Result<CompiledFunction> {
+        let unit = futures::executor::block_on(self.session.compile_executable_unit(
+            runmat_core::ExecutableSource::new("tensorlab", source_name, source),
+            None,
+        ))?;
+        Ok(CompiledFunction {
+            unit,
+            function: function.to_string(),
+        })
+    }
+
+    /// 调用已编译函数（标量数值参数 → 标量数值结果）。
+    pub fn invoke_compiled_function(
+        &mut self,
+        compiled: &CompiledFunction,
+        args: &[f64],
+    ) -> anyhow::Result<f64> {
+        let invocation = runmat_core::ProcedureInvocation {
+            target: runmat_core::ProcedureTarget::Function(compiled.function.clone()),
+            arguments: args
+                .iter()
+                .map(|value| runmat_value::Value::Num(*value))
+                .collect(),
+            requested_outputs: 1,
+        };
+        let value = futures::executor::block_on(self.session.invoke_executable(
+            &compiled.unit,
+            invocation,
+            &runmat_core::InvocationControl::default(),
+        ))?;
+        match value {
+            runmat_value::Value::Num(value) => Ok(value),
+            other => anyhow::bail!("compiled function returned non-scalar value: {other:?}"),
         }
     }
 
@@ -306,6 +378,34 @@ fn toolbox_dir() -> Option<String> {
     } else {
         None
     }
+}
+
+/// 递归枚举 toolbox 目录（根目录在前，子目录按名称排序）；跳过隐藏目录。
+fn collect_toolbox_dirs(root: &std::path::Path) -> Vec<std::path::PathBuf> {
+    fn walk(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+        out.push(dir.to_path_buf());
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return;
+        };
+        let mut children: Vec<_> = entries
+            .filter_map(|entry| entry.ok())
+            .map(|entry| entry.path())
+            .filter(|path| path.is_dir())
+            .filter(|path| {
+                path.file_name()
+                    .and_then(|name| name.to_str())
+                    .map(|name| !name.starts_with('.'))
+                    .unwrap_or(false)
+            })
+            .collect();
+        children.sort();
+        for child in children {
+            walk(&child, out);
+        }
+    }
+    let mut dirs = Vec::new();
+    walk(root, &mut dirs);
+    dirs
 }
 
 fn diagnostic_payload(d: &RuntimeDiagnostic, source: &str) -> DiagnosticPayload {
@@ -548,6 +648,51 @@ mod tests {
         // 快照默认只给 16 个值；物化后应覆盖完整 1x100。
         assert!(v.preview.contains("100"), "preview: {}", v.preview);
         assert!(v.preview.len() > 200, "preview too short: {}", v.preview);
+    }
+
+    #[test]
+    fn compiled_function_can_be_invoked_repeatedly() {
+        let mut engine = super::Engine::new().expect("engine");
+        let source = "function s = tl_compiled_sum(n)\n\
+                      s = 0;\n\
+                      for i = 1:n\n\
+                      s = s + i;\n\
+                      end\n\
+                      end\n";
+        let compiled = engine
+            .compile_function_source("tl_compiled_sum.m", source, "tl_compiled_sum")
+            .expect("compile");
+        assert_eq!(
+            engine
+                .invoke_compiled_function(&compiled, &[10.0])
+                .expect("10"),
+            55.0
+        );
+        assert_eq!(
+            engine
+                .invoke_compiled_function(&compiled, &[100.0])
+                .expect("100"),
+            5050.0
+        );
+    }
+
+    #[test]
+    fn toolbox_directories_are_enumerated_without_hidden_dirs() {
+        let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("toolbox");
+        let dirs = super::collect_toolbox_dirs(&root);
+        assert_eq!(dirs.first(), Some(&root), "toolbox root must come first");
+        assert!(dirs.iter().any(|p| p.ends_with("stats_pdf")));
+        assert!(
+            dirs.iter().all(|p| !p
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("")
+                .starts_with('.')),
+            "hidden directories must be skipped"
+        );
     }
 
     #[test]

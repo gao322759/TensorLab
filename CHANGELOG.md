@@ -12,6 +12,10 @@
 - **桌面端 About/版本显示**：页眉显示 `v0.2.1`；`About` 按钮或 `F1` 打开对话框，
   展示版本（来自 Cargo 包版本）、内核 RunMat 0.6.2、兼容目标 R2026a 与 MIT 许可证。
   GUI smoke 增至 11 条断言。
+- **函数调用路径宿主优化**：`fcdf` 的不完整 beta 连分式改为同文件局部函数；
+  `mount_toolbox` 改为逐目录精确 `addpath`（不再 `genpath`）；新增
+  `Engine::compile_function_path/source` + `invoke_compiled_function` 与
+  `tensorlab bench --aot`，固定函数重复调用实测提升约 **2.9x**。
 - **变量面板实用化**：≤4096 元素的 CPU 变量预览从 16 个数值提升到最多 128 个；
   右侧工作区最小宽度 340px → 420px，值列不再限制 220px，支持换行展示。
 - **文档站 + 教程**：`docs/site/`（离线 HTML，首页 + 快速上手 / m-script 基础 /
@@ -100,7 +104,7 @@
 - **优化（8）**：`fmincon`（外罚函数 + Hooke–Jeeves）、`lsqlin`（有效集 KKT）、`intlinprog`（分支定界）、
   `ga`、`simulannealbnd`、`particleswarm`、`patternsearch`、`optimget` → 工具箱达到 20 个可用函数
 - **信号（8）**：`convn`（1-D/2-D）、`fir2`、`freqs`、`upfirdn`、`pspectrum`、`kaiserord`、`czt`、`goertzel`
-- **统计（7 + `fcdf`/`tl_betacf` 辅助）**：`chi2pdf`、`mle`、`anova1`、`anova2`、`kruskalwallis`、`glmfit`、`nlinfit`
+- **统计（7 + `fcdf` 辅助）**：`chi2pdf`、`mle`、`anova1`、`anova2`、`kruskalwallis`、`glmfit`、`nlinfit`
 - **控制（11）**：`nichols`、`allmargin`、`minreal`、`dlqr`、`kalman`、`ssdata`、`ss2zp`、`zp2ss`、`c2d`、`d2c`、`d2d`
 - **5 个新 demo**：`signal_toolbox.m`、`image_toolbox.m`、`stats_toolbox.m`、`optim_demo.m`、`control_demo.m`
 - **GUI 自动化测试**：`apps/tl-desktop/ui/tests/gui_smoke.mjs`（Node + 无头 Edge + CDP，7 条断言），

@@ -25,7 +25,12 @@ fn run() -> anyhow::Result<()> {
                 .ok_or_else(|| anyhow::anyhow!("usage: tensorlab run <script.m>"))?;
             run_script(&path)
         }
-        Some("bench") => run_bench(!args.any(|a| a == "--no-jit")),
+        Some("bench") => {
+            let rest: Vec<String> = args.collect();
+            let no_jit = rest.iter().any(|arg| arg == "--no-jit");
+            let aot = rest.iter().any(|arg| arg == "--aot");
+            run_bench(!no_jit, aot)
+        }
         Some("help") | Some("--help") | Some("-h") => {
             println!("{}", tl_toolbox::help_overview());
             Ok(())
@@ -38,7 +43,7 @@ fn run() -> anyhow::Result<()> {
             Ok(())
         }
         Some(other) => Err(anyhow::anyhow!(
-            "unknown command '{other}'. usage: tensorlab [run <script.m> | bench [--no-jit] | help | version]"
+            "unknown command '{other}'. usage: tensorlab [run <script.m> | bench [--no-jit] [--aot] | help | version]"
         )),
     }
 }
@@ -55,7 +60,7 @@ fn run_script(path: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn run_bench(enable_jit: bool) -> anyhow::Result<()> {
+fn run_bench(enable_jit: bool, aot: bool) -> anyhow::Result<()> {
     let mut engine = Engine::with_jit(enable_jit)?;
     let dir = std::env::temp_dir().join("tensorlab-bench");
     std::fs::create_dir_all(&dir)?;
@@ -138,6 +143,9 @@ fn run_bench(enable_jit: bool) -> anyhow::Result<()> {
         );
     }
     println!("\n注：JIT 采用分层编译，前 {WARMUP} 次为预热；steady_ms 取最后 {REPS} 次的中位数。");
+    if aot {
+        run_aot_probe(&mut engine, &dir)?;
+    }
     let stats = engine.kernel_stats();
     println!(
         "内核统计：executions={} jit_compiled={} interpreter_fallback={} osr={} vectorized_regions={}",
@@ -149,6 +157,37 @@ fn run_bench(enable_jit: bool) -> anyhow::Result<()> {
     );
     println!(
         "MATLAB 对比请运行 bench/matlab_bench.m（同一 workload），记录到 docs/jit-benchmarks.md。"
+    );
+    Ok(())
+}
+
+fn run_aot_probe(engine: &mut Engine, dir: &std::path::Path) -> anyhow::Result<()> {
+    let path = dir.join("tl_bench_loop.m").to_string_lossy().to_string();
+    let compiled = match engine.compile_function_path(&path, "tl_bench_loop") {
+        Ok(compiled) => compiled,
+        Err(err) => {
+            eprintln!("AOT 探针跳过：{err}");
+            return Ok(());
+        }
+    };
+    for _ in 0..3 {
+        let _ = engine.invoke_compiled_function(&compiled, &[50.0]);
+    }
+    let started = std::time::Instant::now();
+    let mut sum = 0.0;
+    for _ in 0..100 {
+        match engine.invoke_compiled_function(&compiled, &[50.0]) {
+            Ok(value) => sum += value,
+            Err(err) => {
+                eprintln!("AOT 探针失败：{err}");
+                return Ok(());
+            }
+        }
+    }
+    let total = started.elapsed().as_secs_f64() * 1000.0;
+    println!(
+        "AOT function calls: 100 × tl_bench_loop(50) = {total:.1} ms total, {:.3} ms/call (sum={sum})",
+        total / 100.0
     );
     Ok(())
 }

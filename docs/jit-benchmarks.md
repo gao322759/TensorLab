@@ -175,15 +175,17 @@ executions=77 jit_compiled=30 interpreter_fallback=47 osr=0 vectorized_regions=2
 4. 首次解析后绑定 callable ID，后续走 direct-call，跳过路径搜索与项目发现；
 5. 让函数体循环参与 JIT/OSR（当前 `osr=0`），至少达到顶层循环的每迭代成本。
 
-**B. TensorLab 宿主（可立即做）**
-1. 热路径 helper 改为**同文件局部函数**（本次探针已验证约 25% 收益）；
+**B. TensorLab 宿主（已落地）**
+1. 热路径 helper 改为**同文件局部函数**：`fcdf` 的不完整 beta 连分式已并入同文件，
+   删除 `toolbox/stats_pdf/tl_betacf.m`（探针显示约 25% 收益）；
 2. 不要用 `@` 句柄替代直接调用来“优化”（无收益）；
-3. 合并工具箱高频跨文件调用；`addpath` 使用精确目录而非大范围 `genpath`；
-4. 对重复执行的固定函数，使用 `compile_executable_unit` + `invoke_executable`
-   （entrypoint 探针已显示约 2x 收益）。
+3. `Engine::mount_toolbox` 改为**逐目录精确 `addpath`**，不再使用 `genpath`；
+4. 新增 `Engine::compile_function_path/source` + `invoke_compiled_function`，
+   固定函数可编译一次、重复调用；`tensorlab bench --aot` 实测
+   **5.72ms/call vs 16.44ms/call（2.9x）**。
 
-预期：修掉分派后 `loop_calls_100` 可从 ~1.6s 降到 ~1.0s；函数体 JIT 后可接近
-顶层循环的 ~0.3–0.5s；与 MATLAB 的 0.023ms 仍有数量级差距，但可获得 3–5x 提升。
+预期：宿主侧 AOT 已把固定函数重复调用提升约 2.9x；要修掉动态分派与函数体 OSR，
+仍需 RunMat 上游改动。
 
 ## 五、启动时间（2026-10-18）
 

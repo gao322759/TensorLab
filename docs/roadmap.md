@@ -135,6 +135,9 @@ Windows 便携 ZIP + 可选 MSI/NSIS；macOS DMG、Linux AppImage/deb 需在对�
   （测量命令见 [jit-benchmarks.md](jit-benchmarks.md) §五）。
 - ✅ **文档站 + 教程**：`docs/site/`（首页 + 快速上手 / m-script / 绘图与桌面端 / MCP 四篇教程），
   离线可打开、无外部依赖。
+- ✅ **函数调用路径宿主优化**：`fcdf` 局部 helper、逐目录精确 `addpath`、
+  `Engine::compile_function_path/source` + `invoke_compiled_function`、
+  `tensorlab bench --aot`（固定函数重复调用约 **2.9x**）。
 
 ### 下一步
 - ⬜ **RunMat 0.6.3 升级**：截至 2026-10-18 crates.io 与 GitHub（含 `main`）最新均为
@@ -142,10 +145,9 @@ Windows 便携 ZIP + 可选 MSI/NSIS；macOS DMG、Linux AppImage/deb 需在对�
 - ⛔ **标量循环 JIT（内核受限，K19）**：release 405ms vs MATLAB 0.04ms；
   诊断显示 `used_jit=true` 但 `native_osr_transfers=0`，顶层循环从未 OSR；
   tiering 配置仅 `pub(crate)`，宿主无法调整。需 RunMat 上游修复。
-- ⬜ **函数调用路径 JIT（本轮不做）**：`function_calls_100` release 917ms；
-  拆解显示跨文件空函数约 4.4ms/次，函数体循环比顶层慢 2.2–3.4x，`@` 句柄无收益。
-  宿主可做：热路径 helper 改同文件局部函数、精确 `addpath`、合并高频跨文件调用；
-  上游需：path/metadata 缓存、direct-call 绑定、函数体 OSR。详见
+- ⬜ **函数调用路径（上游）**：宿主侧已完成局部 helper、精确 `addpath`、
+  AOT 重复调用（约 2.9x）；剩余动态文件解析与函数体 OSR 需 RunMat 上游：
+  path/metadata 缓存、direct-call 绑定、函数体 JIT。详见
   [jit-benchmarks.md](jit-benchmarks.md) §4.1。
 - ⛔ **数值内核快速路径（内核受限，K19）**：matmul 68x、FFT 30x、向量数学 8.7x；
   TensorLab 无内置函数注册 API（K12），无法替换 `*` / `fft` / `sin` 实现。

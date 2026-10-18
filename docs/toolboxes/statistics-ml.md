@@ -89,7 +89,7 @@
 ## 三、v0.2 实现清单（缺口）
 
 v0.2 已交付：`pca`、`zscore`、`range`、`ttest`、`moment`、`iqr`、`normfit`、`vartest`、
-`chi2pdf`、`mle`、`anova1`、`anova2`、`kruskalwallis`、`glmfit`、`nlinfit`（辅助：`fcdf`、`tl_betacf`）。
+`chi2pdf`、`mle`、`anova1`、`anova2`、`kruskalwallis`、`glmfit`、`nlinfit`（辅助：`fcdf`，其不完整 beta 连分式为同文件局部函数）。
 
 仍缺（诚实清单）：
 

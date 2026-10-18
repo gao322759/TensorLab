@@ -3,8 +3,8 @@
 > v0.1 基线：**94 个测试 / 11 个测试目标 / 0 失败**。
 > v0.2 基线（2026-10-17）：**102 个测试 / 13 个测试目标 / 0 失败**，
 > 另有 GUI 自动化 **7 条断言**（由 `gui_smoke` 测试以独立 Node 进程执行并计入 102 条）。
-> v0.3-dev 基线（2026-10-18）：**123 个测试 / 19 个测试目标 / 0 失败**
-> （含 kernel canaries、adversarial、golden 快照、JIT tiering、内核统计与变量预览）；
+> v0.3-dev 基线（2026-10-18）：**125 个测试 / 19 个测试目标 / 0 失败**
+> （含 kernel canaries、adversarial、golden 快照、JIT tiering、内核统计、变量预览与 AOT 函数调用）；
 > GUI 自动化 **11 条断言**（新增 About 版本对话框与 Command Window 右键复制、`Ctrl+L` 清空）。
 > 冷构建 + 全量测试约 40 分钟（链接重）；`cargo test --workspace -j 1` 可避免并发链接冲突。
 
@@ -28,7 +28,7 @@
 | `tl-types`（单测） | 11 | `class_name` / `size_of` / `body_text` / `compact` / `echo_line`；`StreamEntryPayload` 的 tag 命名契约 |
 | `tl-linalg`（单测） | 8 | LU 分解、`det` 置换符号、`solve`/`inv` 往返、奇异矩阵一律返回 `None` |
 | `tl-parser`（单测） | 9 | tokenize **不变量**（token 文本无缝拼回原行）、`start` 为绝对字节列、注释吞行、多字节列号 |
-| `tl-kernel`（单测） | 8 | 图窗 `*_source` 剥离、数值预览格式化（标量/向量/截断/空）、`variable_table` 排版、`kernel_stats` 的 VM 回退、变量预览扩展到 128 值 |
+| `tl-kernel`（单测） | 10 | 图窗 `*_source` 剥离、数值预览格式化、`variable_table` 排版、`kernel_stats`、变量预览扩展、AOT 函数重复调用、toolbox 目录枚举 |
 | `tl-kernel/tests/classdef_path.rs` | 1 | `SourceInput::Path` 加载同目录 classdef：`class(p)=='Vec2'`、`p.magnitude()==5` |
 | `tl-kernel/tests/kernel_canaries.rs` | 5 | 内核升级回归看守：K13/K14 目录级污染、K15 闭包环境、K16 切片转置、K17 标量归约 |
 | `tl-toolbox`（单测） | 9 | 命令元数据完整且小写、注册表有序无重、`find` 命中/未命中、help 分派、`mex` 子命令 |

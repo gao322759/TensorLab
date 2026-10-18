@@ -65,7 +65,7 @@ target\debug\tensorlab.exe run probe.m
 落地方式（v0.2 首个增量，**已实现**）：
 
 - 新增仓库根 `toolbox/` 目录，内含 `signal/ image/ optimization/ stats/ control/` 子目录，每个函数一个 `.m` 文件；
-- **`tl-kernel`（L2）在 `Engine::new()` 内对 `toolbox/` 执行 `addpath(genpath(...))`**，把纯 m 函数挂到内核搜索路径；
+- **`tl-kernel`（L2）在 `Engine::new()` 内枚举 `toolbox/` 子目录并逐目录 `addpath`**（不再用 `genpath`），把纯 m 函数挂到内核搜索路径；
 - 各 App（CLI/desktop/MCP）经 Engine 引导自动挂载，无需各自处理；
 - 目录缺失时静默跳过（发行物可只带二进制）；
 - 防回归测试：`tl-commands` 的 `toolbox_m_scripts_are_mounted`。
