@@ -24,6 +24,26 @@
     "active": true,
     "targets": "all",
     "icon": ["icons/icon.ico", "icons/icon.png"],
-    "resources": ["../../../toolbox"]
+    "resources": [
+      "../../../toolbox/control",
+      "../../../toolbox/image",
+      "../../../toolbox/numerics_btri",
+      "../../../toolbox/numerics_gmres",
+      "../../../toolbox/numerics_pcg",
+      "../../../toolbox/optimization",
+      "../../../toolbox/optim_batch",
+      "../../../toolbox/optim_extra",
+      "../../../toolbox/optim_fmincon",
+      "../../../toolbox/optim_lsqlin",
+      "../../../toolbox/signal",
+      "../../../toolbox/stats",
+      "../../../toolbox/stats_extra",
+      "../../../toolbox/stats_pdf"
+    ],
+    "windows": {
+      "wix": {
+        "language": ["zh-CN"]
+      }
+    }
   }
 }
