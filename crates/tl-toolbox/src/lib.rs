@@ -173,7 +173,8 @@ impl Command for VersionCmd {
     fn run(&self, engine: &mut Engine, _args: &[String]) -> CommandResult {
         let report = engine.run("version", "version('-release')");
         CommandResult::Text(format!(
-            "TensorLab 0.1.0 (kernel: RunMat 0.6.2)\n{}",
+            "TensorLab {} (kernel: RunMat 0.6.2)\n{}",
+            env!("CARGO_PKG_VERSION"),
             report.console_text()
         ))
     }

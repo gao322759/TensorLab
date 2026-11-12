@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>TensorLab UI shell - smoke (M0)</title>
+<style>
+  :root {
+    --ml-titlebar: #eeeeee;
+    --ml-panel-bg: #ffffff;
+    --ml-panel-border: #d4d4d4;
+    --ml-accent: #0072bd;
+    --ml-text: #1a1a1a;
+    --ml-docktab-active: #ffffff;
+    --ml-docktab-idle: #e2e2e2;
+    --ml-cmd-bg: #ffffff;
+    --ml-editor-gutter: #f5f5f5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Segoe UI", sans-serif; font-size: 12px; color: var(--ml-text); overflow: hidden; }
+  .titlebar {
+    height: 30px; background: var(--ml-titlebar); border-bottom: 1px solid var(--ml-panel-border);
+    display: flex; align-items: center; padding: 0 8px; gap: 12px;
+  }
+  .titlebar .brand { font-weight: 600; }
+  .titlebar .docname { color: #555; }
+  .ribbon {
+    height: 64px; background: var(--ml-titlebar); border-bottom: 1px solid var(--ml-panel-border);
+    display: flex; align-items: stretch; padding: 0 8px; gap: 18px;
+  }
+  .ribbon .tab-row { display: flex; gap: 14px; align-items: flex-end; height: 24px; }
+  .ribbon .tab { padding: 4px 10px; }
+  .ribbon .tab.active { background: var(--ml-panel-bg); border: 1px solid var(--ml-panel-border); border-bottom: none; }
+  .ribbon .groups { display: flex; gap: 24px; padding: 4px 0; }
+  .ribbon .group { display: flex; flex-direction: column; align-items: center; gap: 4px; border-right: 1px solid var(--ml-panel-border); padding-right: 20px; }
+  .ribbon .group:last-child { border-right: none; }
+  .ribbon .btnrow { display: flex; gap: 6px; }
+  .ribbon .btn { width: 52px; height: 30px; border: 1px solid var(--ml-panel-border); background: var(--ml-panel-bg); display: flex; align-items: center; justify-content: center; font-size: 10px; }
+  .ribbon .grouplabel { font-size: 10px; color: #666; }
+  .main { display: flex; height: calc(100vh - 96px); }
+  .dock { background: var(--ml-panel-bg); display: flex; flex-direction: column; }
+  .dock .doctabs { display: flex; background: var(--ml-docktab-idle); }
+  .dock .doctabs .dt { padding: 4px 12px; border-right: 1px solid var(--ml-panel-border); font-size: 11px; }
+  .dock .doctabs .dt.active { background: var(--ml-docktab-active); font-weight: 600; }
+  .dock .content { flex: 1; overflow: auto; padding: 6px; }
+  .left { width: 220px; border-right: 1px solid var(--ml-panel-border); }
+  .center { flex: 1; display: flex; flex-direction: column; }
+  .right { width: 260px; border-left: 1px solid var(--ml-panel-border); }
+  .center .editor { flex: 1.2; border-bottom: 1px solid var(--ml-panel-border); }
+  .center .cmdwin { flex: 1; }
+  .editor-body { display: flex; height: 100%; }
+  .gutter { width: 40px; background: var(--ml-editor-gutter); text-align: right; padding: 6px 6px 0 0; color: #888; font-family: Consolas, monospace; font-size: 11px; line-height: 18px; user-select: none; }
+  .code { flex: 1; font-family: Consolas, monospace; font-size: 11px; line-height: 18px; padding: 6px; white-space: pre; }
+  .kw { color: var(--ml-accent); }
+  .cm { color: #228B22; }
+  .str { color: #A020F0; }
+  .cmd-prompt { color: var(--ml-accent); font-family: Consolas, monospace; }
+  .cmd-out { font-family: Consolas, monospace; white-space: pre-wrap; }
+  table.vars { border-collapse: collapse; width: 100%; font-size: 11px; }
+  table.vars th { text-align: left; border-bottom: 1px solid var(--ml-panel-border); padding: 2px 6px; background: #f7f7f7; }
+  table.vars td { padding: 2px 6px; border-bottom: 1px solid #eee; font-family: Consolas, monospace; }
+  .statusbar { height: 22px; background: var(--ml-titlebar); border-top: 1px solid var(--ml-panel-border); display: flex; align-items: center; padding: 0 10px; gap: 16px; font-size: 11px; color: #555; }
+</style>
+</head>
+<body>
+  <div class="titlebar">
+    <span class="brand">TensorLab</span>
+    <span class="docname">fft_demo.m - TensorLab R2026a-paradigm study</span>
+  </div>
+  <div class="ribbon">
+    <div class="tab-row">
+      <div class="tab active">HOME</div><div class="tab">PLOT</div><div class="tab">APP</div><div class="tab">EDITOR</div>
+    </div>
+    <div class="groups">
+      <div class="group"><div class="btnrow"><div class="btn">New</div><div class="btn">Open</div><div class="btn">Save</div></div><div class="grouplabel">FILE</div></div>
+      <div class="group"><div class="btnrow"><div class="btn">Run</div><div class="btn">Step</div></div><div class="grouplabel">CODE</div></div>
+      <div class="group"><div class="btnrow"><div class="btn">Layout</div></div><div class="grouplabel">ENVIRONMENT</div></div>
+    </div>
+  </div>
+  <div class="main">
+    <div class="dock left">
+      <div class="doctabs"><div class="dt active">Current Folder</div><div class="dt">Details</div></div>
+      <div class="content">
+        fft_demo.m<br>benchmarks/<br>toolbox/<br>tests/<br>demos/
+      </div>
+    </div>
+    <div class="center">
+      <div class="dock editor">
+        <div class="doctabs"><div class="dt active">fft_demo.m</div><div class="dt">plot_result.m</div></div>
+        <div class="editor-body">
+          <div class="gutter">1<br>2<br>3<br>4<br>5<br>6<br>7</div>
+          <div class="code"><span class="cm">% FFT demo (mock content for layout smoke)</span>
+n = 4096;
+t = <span class="kw">linspace</span>(0, 1, n);
+sig = <span class="fu">sin</span>(2*<span class="kw">pi</span>*50*t) + 0.5*<span class="fu">sin</span>(2*<span class="kw">pi</span>*120*t);
+X = <span class="kw">fft</span>(sig);
+f = (0:n-1)*(1/n);
+<span class="kw">plot</span>(f, <span class="fu">abs</span>(X))</div>
+        </div>
+      </div>
+      <div class="dock cmdwin">
+        <div class="doctabs"><div class="dt active">Command Window</div><div class="dt">Editor - run output</div></div>
+        <div class="content">
+          <div class="cmd-prompt">&gt;&gt; </div>
+          <div class="cmd-out">n =
+        4096
+ans =
+   1.0e+03 *
+         0         0    0.0012    0.0025  ...</div>
+        </div>
+      </div>
+    </div>
+    <div class="dock right">
+      <div class="doctabs"><div class="dt active">Workspace</div><div class="dt">Details</div></div>
+      <div class="content">
+        <table class="vars">
+          <tr><th>Name</th><th>Value</th><th>Size</th></tr>
+          <tr><td>n</td><td>4096</td><td>1x1</td></tr>
+          <tr><td>t</td><td>1x4096 double</td><td>1x4096</td></tr>
+          <tr><td>sig</td><td>1x4096 double</td><td>1x4096</td></tr>
+          <tr><td>X</td><td>1x4096 double complex</td><td>1x4096</td></tr>
+          <tr><td>f</td><td>1x4096 double</td><td>1x4096</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="statusbar">
+    <span>Ready</span><span>fast grid</span><span>Ln 5, Col 1</span><span>UTF-8</span>
+  </div>
+</body>
+</html>

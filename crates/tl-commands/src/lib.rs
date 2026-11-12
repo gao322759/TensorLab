@@ -7,6 +7,8 @@
 //!
 //! 使用方**只** import 本 crate（+tl-types 载荷），不触碰下层。
 
+/// 调试控制器（断点/步进/停止），供 Tauri/MCP 宿主直接操作。
+pub use tl_kernel::debug;
 pub use tl_kernel::Engine;
 pub use tl_toolbox::CommandResult;
 pub use tl_types::RunReport;
@@ -21,6 +23,13 @@ pub fn run_source(engine: &mut Engine, name: &str, source: &str) -> RunReport {
     engine.run(name, source)
 }
 
+/// 运行一段 m 源码，并用 `path` 做 classdef/companion 发现。
+///
+/// `path` 必须是磁盘上已存在的脚本路径；内核执行的是 `source`（编辑器缓冲区）。
+pub fn run_source_at(engine: &mut Engine, path: &str, source: &str) -> RunReport {
+    engine.run_at(path, source)
+}
+
 /// 运行 m 文件
 ///
 /// 走 `SourceInput::Path` 请求，使内核能加载同目录的 `classdef` 类文件。
@@ -31,6 +40,32 @@ pub fn run_file(engine: &mut Engine, path: &str) -> anyhow::Result<RunReport> {
 
 /// 一行 REPL 输入：宿主命令（无括号、非 m 语法）或 m 代码
 pub fn repl_line(engine: &mut Engine, line: &str) -> CommandResult {
+    repl_line_at(engine, line, None)
+}
+
+/// 一行 REPL 输入，可选地用 `path` 做 classdef/companion 发现。
+///
+/// 桌面端编辑器执行缓冲区时传入当前文件路径，使同目录 `classdef` 可用；
+/// 控制台单行与 CLI REPL 传 `None`。
+pub fn repl_line_at(engine: &mut Engine, line: &str, path: Option<&str>) -> CommandResult {
+    dispatch(engine, line, |e, l| match path {
+        Some(p) => e.run_at(p, l),
+        None => e.run("repl", l),
+    })
+}
+
+/// 同 [`repl_line_at`]，但 m 代码走**断点调试**执行路径（源码插桩 + 断点暂停）。
+pub fn repl_line_at_debug(engine: &mut Engine, line: &str, path: Option<&str>) -> CommandResult {
+    dispatch(engine, line, |e, l| match path {
+        Some(p) => e.run_debugged_at(p, l),
+        None => e.run_debugged("repl", l),
+    })
+}
+
+fn dispatch<F>(engine: &mut Engine, line: &str, run_code: F) -> CommandResult
+where
+    F: FnOnce(&mut Engine, &str) -> RunReport,
+{
     let trimmed = line.trim();
     // 空行
     if trimmed.is_empty() {
@@ -73,7 +108,7 @@ pub fn repl_line(engine: &mut Engine, line: &str) -> CommandResult {
         }
     }
     // 否则交给内核
-    CommandResult::Report(engine.run("repl", trimmed))
+    CommandResult::Report(run_code(engine, trimmed))
 }
 
 fn split_args(line: &str) -> Vec<String> {

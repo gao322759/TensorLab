@@ -16,11 +16,14 @@ use runmat_core::{
     CompatMode, ExecutionStreamKind, NumericPreviewValue, RunError, RunMatSession,
     WorkspaceMaterializeOptions, WorkspaceMaterializeTarget,
 };
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 use tl_types::{
     body_text, echo_line, DiagnosticPayload, FigurePayload, RunReport, StreamEntryPayload,
     VariableInfo,
 };
+
+pub mod debug;
 
 /// 变量面板单次最多展示的数值个数（快照默认只有 16 个）。
 const WORKSPACE_PREVIEW_ELEMENTS: usize = 128;
@@ -62,6 +65,8 @@ impl Engine {
     /// - `false`：解释器-only，用于 VM/JIT 性能对照与回归测试。
     pub fn with_jit(enable_jit: bool) -> anyhow::Result<Self> {
         let session = RunMatSession::with_options(enable_jit, false)?;
+        // 调试器 stop 语义需要直接置内核中断标志（见 debug.rs）
+        debug::set_interrupt_handle(session.interrupt_handle());
         let mut engine = Engine { session };
         engine.mount_toolbox();
         Ok(engine)
@@ -73,18 +78,23 @@ impl Engine {
     /// 后即可被 m 代码调用，用于补齐内核未提供的 R2026a 函数。
     /// 这里显式枚举子目录，而不是 `genpath`：避免扫描隐藏/临时目录，也让搜索
     /// 路径在启动时就确定下来（函数调用路径无需再大范围遍历）。
-    /// 找不到目录时静默跳过（发行物可能不含源目录）。
+    /// 找不到目录时输出警告并跳过（发行物可能不含源目录）。
     fn mount_toolbox(&mut self) {
         let Some(dir) = toolbox_dir() else {
+            eprintln!(
+                "warning: toolbox directory not found; m-script toolbox functions are unavailable"
+            );
             return;
         };
-        let dirs = collect_toolbox_dirs(std::path::Path::new(&dir));
+        let dirs = collect_toolbox_dirs(Path::new(&dir));
         if dirs.is_empty() {
+            eprintln!("warning: toolbox directory '{dir}' contains no subdirectories");
             return;
         }
         let mut src = String::new();
         for d in dirs {
-            let path = d.to_string_lossy().replace('\\', "/");
+            // m 字符串里的单引号需要双写，避免路径含 ' 时生成非法 addpath。
+            let path = d.to_string_lossy().replace('\\', "/").replace('\'', "''");
             src.push_str(&format!("addpath('{path}');\n"));
         }
         let report = self.run("<toolbox>", &src);
@@ -127,6 +137,32 @@ impl Engine {
         report
     }
 
+    /// 执行一段 m 源码，并用 `path` 作为源身份以加载同目录的 `classdef`。
+    ///
+    /// 与 [`Engine::run_path`] 的区别：内核执行调用方传入的 `source`（通常是
+    /// 编辑器缓冲区，可能尚未落盘），但用 `path` 做项目/companion 发现。
+    /// RunMat 的 companion 发现要求该路径指向磁盘上**已存在**的文件，因此
+    /// 未保存的缓冲区没有可用路径，只能回退到 [`Engine::run`]。
+    ///
+    /// [`Engine::run`]: Engine::run
+    pub fn run_at(&mut self, path: &str, source: &str) -> RunReport {
+        let started = Instant::now();
+        let canonical = std::fs::canonicalize(path)
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_else(|_| path.to_string());
+        let mut report = self.execute(
+            SourceInput::Text {
+                name: canonical,
+                text: source.to_string(),
+            },
+            source,
+        );
+        if report.duration_ms == 0.0 {
+            report.duration_ms = started.elapsed().as_secs_f64() * 1000.0;
+        }
+        report
+    }
+
     fn run_inner(&mut self, name: &str, source: &str) -> RunReport {
         self.execute(
             SourceInput::Text {
@@ -135,6 +171,42 @@ impl Engine {
             },
             source,
         )
+    }
+
+    /// 调试运行：源码先经语句级插桩（`__tl_debug__(N)` 钩子），命中断点或
+    /// 单步模式时暂停并通知宿主（见 [`debug`] 模块）。结束后清理调试状态。
+    pub fn run_debugged(&mut self, source_name: &str, source: &str) -> RunReport {
+        let started = Instant::now();
+        let instrumented = debug::instrument_source(source);
+        debug::begin_run();
+        let mut report = self.run_inner(source_name, &instrumented);
+        debug::finish_run();
+        if report.duration_ms == 0.0 {
+            report.duration_ms = started.elapsed().as_secs_f64() * 1000.0;
+        }
+        report
+    }
+
+    /// 调试运行（带文件路径，保留 classdef/companion 发现，内核仍执行缓冲区文本）。
+    pub fn run_debugged_at(&mut self, path: &str, source: &str) -> RunReport {
+        let started = Instant::now();
+        let canonical = std::fs::canonicalize(path)
+            .map(|p| p.to_string_lossy().into_owned())
+            .unwrap_or_else(|_| path.to_string());
+        let instrumented = debug::instrument_source(source);
+        debug::begin_run();
+        let mut report = self.execute(
+            SourceInput::Text {
+                name: canonical,
+                text: instrumented,
+            },
+            source,
+        );
+        debug::finish_run();
+        if report.duration_ms == 0.0 {
+            report.duration_ms = started.elapsed().as_secs_f64() * 1000.0;
+        }
+        report
     }
 
     fn execute(&mut self, input: SourceInput, source: &str) -> RunReport {
@@ -275,6 +347,25 @@ impl Engine {
         self.session.clear_variables();
     }
 
+    /// 导出 workspace 字节级快照（plan.md 4.2：任务持久化 / 断点续算）。
+    ///
+    /// 走 RunMat 内核的 `export_workspace_state(Force)`——字节级 replay
+    /// 载荷，包含变量全集；恢复用 [`Engine::restore_workspace`]。
+    /// 与 sict.run 的 M 侧 JSON 检查点互补：本 API 面向宿主进程
+    /// （CLI / 桌面 / MCP）的长会话持久化。
+    pub fn snapshot_workspace(&mut self) -> anyhow::Result<Vec<u8>> {
+        let bytes = futures::executor::block_on(
+            self.session
+                .export_workspace_state(runmat_core::WorkspaceExportMode::Force),
+        )?;
+        bytes.ok_or_else(|| anyhow::anyhow!("workspace export returned no state"))
+    }
+
+    /// 从 [`Engine::snapshot_workspace`] 的字节载荷恢复 workspace。
+    pub fn restore_workspace(&mut self, bytes: &[u8]) -> anyhow::Result<()> {
+        Ok(self.session.import_workspace_state(bytes)?)
+    }
+
     /// 导出全部图窗（运行后调用；逐个 handle 走 FigureScene 序列化）
     pub fn export_figures(&mut self, handles: &[u32]) -> Vec<FigurePayload> {
         let mut out = Vec::new();
@@ -367,21 +458,47 @@ impl Engine {
     }
 }
 
-/// 定位仓库根的 `toolbox/`（编译期以 tl-kernel 的 manifest 目录向上两级为工作区根）
+/// 定位 `toolbox/`：优先环境变量，其次 exe 相邻/上溯目录（便携包与 MSI 资源），
+/// 最后回退到编译期仓库根（开发期与 cargo test 使用）。
 fn toolbox_dir() -> Option<String> {
-    let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("..")
-        .join("toolbox");
-    if path.is_dir() {
-        Some(path.to_string_lossy().to_string())
-    } else {
-        None
+    if let Ok(dir) = std::env::var("TL_TOOLBOX_DIR") {
+        let path = PathBuf::from(&dir);
+        if path.is_dir() {
+            return Some(path.to_string_lossy().into_owned());
+        }
     }
+
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Ok(exe) = std::env::current_exe() {
+        let mut dir = exe.parent().map(Path::to_path_buf);
+        for _ in 0..6 {
+            let Some(current) = dir else {
+                break;
+            };
+            candidates.push(current.join("toolbox"));
+            candidates.push(current.join("resources").join("toolbox"));
+            dir = current.parent().map(Path::to_path_buf);
+        }
+    }
+    // 开发期兜底：<repo>/crates/tl-kernel/../../toolbox。
+    candidates.push(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("toolbox"),
+    );
+    if let Ok(cwd) = std::env::current_dir() {
+        candidates.push(cwd.join("toolbox"));
+    }
+
+    candidates
+        .into_iter()
+        .find(|path| path.is_dir())
+        .map(|path| path.to_string_lossy().into_owned())
 }
 
 /// 递归枚举 toolbox 目录（根目录在前，子目录按名称排序）；跳过隐藏目录。
-fn collect_toolbox_dirs(root: &std::path::Path) -> Vec<std::path::PathBuf> {
+fn collect_toolbox_dirs(root: &Path) -> Vec<PathBuf> {
     fn walk(dir: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
         out.push(dir.to_path_buf());
         let Ok(entries) = std::fs::read_dir(dir) else {

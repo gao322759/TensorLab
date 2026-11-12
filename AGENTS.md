@@ -56,6 +56,7 @@ cargo run -p tl-cli -- run demos/fft_demo.m    # 运行演示脚本
 cargo run -p tl-cli               # 进入 REPL
 cargo build -p tl-desktop         # 构建桌面端（Tauri 2）
 cargo run -p tl-mcp-server        # 启动 MCP stdio 服务器
+node tests/toolbox_compare.mjs --category signal   # toolbox 白盒：与 MATLAB R2023b 逐例对比
 ```
 
 ## 五、改动检查清单（每次提交前）
@@ -65,6 +66,7 @@ cargo run -p tl-mcp-server        # 启动 MCP stdio 服务器
 - [ ] `cargo xtask layers` 通过
 - [ ] `cargo fmt` 已格式化
 - [ ] 新增内置函数 = 新增一个 `Command` 实现（name / category / description 必填，`help <name>` 依赖它）
+- [ ] 新增/修改 `toolbox/*.m` 自写函数 = **同步维护白盒用例**（`tests/toolbox_cases/<分类>.json`：3 正常 + 2 临界 + 2 异常），且 `node tests/toolbox_compare.mjs --category <分类>` 无新增 FAIL（方法论与经验库见 [docs/testing/toolbox-testing-guide.md](docs/testing/toolbox-testing-guide.md)）
 - [ ] 不引入同层依赖、不向下依赖
 
 ## 六、代码风格
@@ -82,6 +84,7 @@ cargo run -p tl-mcp-server        # 启动 MCP stdio 服务器
 | v0.1 | Tauri 窗口 + 编辑器 + 变量面板 + 解释器 + 绘图 + 5 demo + CLI + MCP | 🔒 **已发行并冻结**（v0.1.0，2026-10-16，94 测试全绿） |
 | v0.2 | 5 个 MVP 工具箱（锚定 MATLAB R2026a）+ MEX 加载桥 + GUI 自动化测试 | 🔒 **已冻结**（v0.2.0，2026-10-17，102 测试全绿 + 10 demo；安装包不在本次范围） |
 | v0.2.1 | Windows MSI 打包 + 测试提速（< 15 分钟目标）+ 对抗性/golden/GUI 结构测试 | ✅ **已发行**（2026-10-18 重建，122 Rust 测试 + 11 GUI 断言；MSI 84.41 MiB） |
+| v0.3.0 | 桌面 UI 对齐 MATLAB R2026a + **脚本调试器**（断点/单步/继续/停止）+ 错误处理 | ✅ **已发行**（2026-11-12；20 内核调试测试 + 11 tl-commands + 19 GUI 断言） |
 | v0.3 | Cranelift JIT 启用 + 性能对标 MATLAB 0.5x（耗时 ≤ 2× MATLAB） | 进行中（2026-10-17 启动；release 对标 MATLAB R2023b：matmul 68x、FFT 30x、向量数学 8.7x、标量循环 10125x、函数调用 39870x，0.5x 未达成；见 docs/jit-benchmarks.md） |
 
 > v0.1.0 的契约快照与冻结范围见 [docs/releases/v0.1.md](docs/releases/v0.1.md)；

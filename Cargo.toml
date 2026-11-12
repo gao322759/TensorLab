@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/tl-types",
     "crates/tl-linalg",
+    "crates/tl-mesh",
     "crates/tl-kernel",
     "crates/tl-parser",
     "crates/tl-interpreter",
@@ -17,7 +18,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.1"
+version = "0.3.0"
 edition = "2021"
 license = "MIT"
 authors = ["TensorLab Team"]

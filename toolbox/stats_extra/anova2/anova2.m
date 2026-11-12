@@ -1,11 +1,13 @@
 function p = anova2(y, reps)
 %ANOVA2 Two-way analysis of variance with replication.
-%   P = ANOVA2(Y,REPS) returns [P_A P_B P_AB] for the factors A (rows),
-%   B (columns, grouped in blocks of REPS columns) and their interaction.
-%   Default REPS = 1 (no replication).
+%   P = ANOVA2(Y,REPS) returns [P_COLUMNS P_ROWS] when REPS = 1 and
+%   [P_COLUMNS P_ROWS P_INTERACTION] otherwise, matching MATLAB's order.
     arguments
         y
         reps double = 1
+    end
+    if reps < 1 || reps ~= round(reps)
+        error('anova2:invalidReps', 'REPS must be a positive integer');
     end
     a = size(y, 1);
     nc = size(y, 2);
@@ -74,14 +76,22 @@ function p = anova2(y, reps)
     dfb = b - 1;
     dfab = (a - 1) * (b - 1);
     dfe = a * b * (reps - 1);
-    p = zeros(1, 3);
-    if dfe > 0 && sse > 0
-        mse = sse / dfe;
-        fa = (ssa / dfa) / mse;
-        fb = (ssb / dfb) / mse;
-        fab = (ssab / dfab) / mse;
-        p(1) = 1 - fcdf(fa, dfa, dfe);
-        p(2) = 1 - fcdf(fb, dfb, dfe);
-        p(3) = 1 - fcdf(fab, dfab, dfe);
+    % MATLAB 的输出顺序为 [p_columns p_rows (p_interaction)]
+    if reps == 1
+        % 无重复的两因素方差分析：交互项充当误差项
+        p = zeros(1, 2);
+        if dfab > 0 && ssab > 0
+            mse = ssab / dfab;
+            p(1) = 1 - fcdf((ssb / dfb) / mse, dfb, dfab);
+            p(2) = 1 - fcdf((ssa / dfa) / mse, dfa, dfab);
+        end
+    else
+        p = zeros(1, 3);
+        if dfe > 0 && sse > 0
+            mse = sse / dfe;
+            p(1) = 1 - fcdf((ssb / dfb) / mse, dfb, dfe);
+            p(2) = 1 - fcdf((ssa / dfa) / mse, dfa, dfe);
+            p(3) = 1 - fcdf((ssab / dfab) / mse, dfab, dfe);
+        end
     end
 end

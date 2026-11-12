@@ -1,9 +1,9 @@
 function B = imrotate(A, angle, method)
 %IMROTATE Rotate an image counterclockwise by ANGLE degrees.
-%   B = IMROTATE(A,ANGLE) rotates with nearest-neighbour sampling.
-%   B = IMROTATE(A,ANGLE,METHOD) with METHOD 'nearest' or 'bilinear'.
-%   The output canvas is enlarged to fit the rotated image; outside pixels
-%   are zero.  Single-plane (grayscale) images only.
+%   B = IMROTATE(A,ANGLE) rotates with nearest-neighbour sampling (MATLAB's
+%   default).  B = IMROTATE(A,ANGLE,METHOD) with METHOD 'nearest' or
+%   'bilinear'.  The output canvas is enlarged to fit the rotated image;
+%   outside pixels are zero.
     arguments
         A
         angle double
@@ -15,8 +15,15 @@ function B = imrotate(A, angle, method)
     th = angle * pi / 180;
     ct = cos(th);
     st = sin(th);
-    mout = ceil(abs(m * ct) + abs(n * st));
-    nout = ceil(abs(m * st) + abs(n * ct));
+    % 消除 360° 等整数圈数产生的浮点残差，避免画布多出一行/列
+    if abs(ct) < 1e-12
+        ct = 0;
+    end
+    if abs(st) < 1e-12
+        st = 0;
+    end
+    mout = ceil(abs(m * ct) + abs(n * st) - 1e-12);
+    nout = ceil(abs(m * st) + abs(n * ct) - 1e-12);
     B = zeros(mout, nout);
     ci = (m + 1) / 2;
     cj = (n + 1) / 2;

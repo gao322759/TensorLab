@@ -19,6 +19,7 @@
 | 内核契约 | 内核行为/回归看守（canary、classdef Path） | `crates/tl-kernel/tests/` | 6 |
 | 黑盒 | **独立进程**的 argv/stdin/stdout/stderr/退出码 | `apps/*/tests/` | 26 |
 | GUI 自动化 | 真实 `index.html` + 无头浏览器 + CDP | `apps/tl-desktop/ui/tests/` + `src-tauri/tests/` | 1（内含 11 断言） |
+| Toolbox 白盒（MATLAB 对比） | `toolbox/*.m` 自写函数与 MATLAB R2023b **逐例数值对比** | `tests/toolbox_compare.mjs` + `tests/toolbox_cases/` | 721 |
 | 架构守门 | 分层不变量 | `tools/xtask/tests/` | 1 |
 
 ## 二、明细
@@ -132,7 +133,17 @@ cargo test -p tl-cli --test cli  # 单个黑盒目标
 # 看失败详情
 cargo test -p tl-commands --test engine_contract -- --nocapture
 cargo test -p tl-kernel --lib formats_scalar -- --nocapture
+
+# toolbox m 函数与 MATLAB R2023b 对比白盒测试（强制要求与经验库见下方指南）
+node tests/toolbox_compare.mjs --category signal   # 单分类
+node tests/toolbox_compare.mjs                     # 全量 721 例
 ```
+
+> **Toolbox 白盒测试**：每个 `toolbox/*.m` 函数 3 正常 + 2 临界 + 2 异常用例，与 MATLAB
+> R2023b 逐例数值对比，判定 PASS/FAIL/WARN/KNOWN/SKIP。新函数**必须**同步提交用例
+> （`AGENTS.md` 改动检查清单强制项）。方法论、RunMat 陷阱与 MATLAB 语义对齐经验库见
+> [testing/toolbox-testing-guide.md](testing/toolbox-testing-guide.md)，
+> 每轮结果报告见 [testing/toolbox-report.md](testing/toolbox-report.md)。
 
 ## 五、未覆盖（已知）
 

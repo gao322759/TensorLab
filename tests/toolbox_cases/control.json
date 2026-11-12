@@ -1,0 +1,612 @@
+{
+  "category": "control",
+  "functions": [
+    {
+      "name": "acker",
+      "setup": "A=[0 1;-2 -3]; B=[0;1]; p=[-4;-5];",
+      "compare": ["K"],
+      "matlab": true,
+      "tol": 1e-8,
+      "normal": [
+        "K=acker(A,B,p);",
+        "K=acker(A,B,[-1;-2]);",
+        "K=acker([0 1;-1 -2],[0;1],[-3;-4]);"
+      ],
+      "boundary": [
+        "K=acker(-1,1,-2);",
+        "K=acker([0 1;-2 -3],[0;1],[-10;-20]);"
+      ],
+      "abnormal": [
+        "K=acker(A,B,[-1]);",
+        "K=acker([1 0;0 1],[0;0],[-1;-2]);"
+      ]
+    },
+    {
+      "name": "allmargin",
+      "setup": "sys=tf([1],[1 2 1]);",
+      "compare": ["Gm", "Pm", "Wcg", "Wcp"],
+      "matlab": false,
+      "note": "本项目返回 Gm/Pm/Wcg/Wcp 四个数值，MATLAB 返回结构体，无法直接对比",
+      "tol": 1e-4,
+      "normal": [
+        "[Gm,Pm,Wcg,Wcp]=allmargin(sys);",
+        "[Gm,Pm,Wcg,Wcp]=allmargin(tf([1],[1 1 1]));",
+        "[Gm,Pm,Wcg,Wcp]=allmargin(tf([1 1],[1 2 3]));"
+      ],
+      "boundary": [
+        "[Gm,Pm,Wcg,Wcp]=allmargin(tf([1],[1]));",
+        "[Gm,Pm,Wcg,Wcp]=allmargin(tf([1],[1 0]));"
+      ],
+      "abnormal": [
+        "[Gm,Pm,Wcg,Wcp]=allmargin([]);",
+        "[Gm,Pm,Wcg,Wcp]=allmargin(1);"
+      ]
+    },
+    {
+      "name": "bode",
+      "setup": "sys=tf([1],[1 2 1]); w=logspace(-2,2,20);",
+      "compare": ["mag", "phase"],
+      "matlab": true,
+      "tol": 1e-6,
+      "normal": [
+        "[mag,phase,wout]=bode(sys,w); mag=squeeze(mag); phase=squeeze(phase);",
+        "[mag,phase,wout]=bode(tf([1 1],[1 2 3]),w); mag=squeeze(mag); phase=squeeze(phase);",
+        "[mag,phase,wout]=bode(tf([1],[1 1]),w); mag=squeeze(mag); phase=squeeze(phase);"
+      ],
+      "boundary": [
+        "[mag,phase,wout]=bode(sys,0); mag=squeeze(mag); phase=squeeze(phase);",
+        "[mag,phase,wout]=bode(sys,100); mag=squeeze(mag); phase=squeeze(phase);"
+      ],
+      "abnormal": [
+        "[mag,phase,wout]=bode(sys,-1); mag=squeeze(mag); phase=squeeze(phase);",
+        "[mag,phase,wout]=bode([],w); mag=squeeze(mag); phase=squeeze(phase);"
+      ]
+    },
+    {
+      "name": "bodemag",
+      "setup": "sys=tf([1],[1 2 1]); w=logspace(-2,2,20);",
+      "compare": ["mag"],
+      "matlab": true,
+      "tol": 1e-6,
+      "normal": [
+        "mag=squeeze(bodemag(sys,w));",
+        "mag=squeeze(bodemag(tf([1 1],[1 2 3]),w));",
+        "mag=squeeze(bodemag(tf([1],[1 1]),w));"
+      ],
+      "boundary": [
+        "mag=squeeze(bodemag(sys,0));",
+        "mag=squeeze(bodemag(sys,100));"
+      ],
+      "abnormal": [
+        "mag=squeeze(bodemag(sys,-1));",
+        "mag=squeeze(bodemag([],w));"
+      ]
+    },
+    {
+      "name": "c2d",
+      "setup": "sys=tf([1],[1 2 1]);",
+      "compare": ["h1", "h2"],
+      "matlab": true,
+      "tol": 1e-6,
+      "normal": [
+        "sysd=c2d(sys,0.1); h1=evalfr(sysd,1); h2=evalfr(sysd,0.5);",
+        "sysd=c2d(sys,0.1,'tustin'); h1=evalfr(sysd,1); h2=evalfr(sysd,0.5);",
+        "sysd=c2d(tf([1 1],[1 2 3]),0.2); h1=evalfr(sysd,1); h2=evalfr(sysd,0.5);"
+      ],
+      "boundary": [
+        "sysd=c2d(sys,0.001); h1=evalfr(sysd,1); h2=evalfr(sysd,0.5);",
+        "sysd=c2d(sys,10); h1=evalfr(sysd,1); h2=evalfr(sysd,0.5);"
+      ],
+      "abnormal": [
+        "sysd=c2d(sys,0); h1=evalfr(sysd,1); h2=evalfr(sysd,0.5);",
+        "sysd=c2d(sys,0.1,'bad'); h1=evalfr(sysd,1); h2=evalfr(sysd,0.5);"
+      ]
+    },
+    {
+      "name": "d2c",
+      "setup": "sys=tf([1],[1 2 1]); sysd=c2d(sys,0.1);",
+      "compare": ["h1", "h2"],
+      "matlab": true,
+      "note": "本项目 d2c 要求显式传入采样周期 TS（MATLAB 从模型属性读取）",
+      "tol": 1e-4,
+      "normal": [
+        "sysc=d2c(sysd,0.1); h1=evalfr(sysc,1); h2=evalfr(sysc,0.5);",
+        "sysc=d2c(sysd,0.1,'tustin'); h1=evalfr(sysc,1); h2=evalfr(sysc,0.5);",
+        "sysc=d2c(c2d(tf([1 1],[1 2 3]),0.2),0.2); h1=evalfr(sysc,1); h2=evalfr(sysc,0.5);"
+      ],
+      "boundary": [
+        "sysc=d2c(c2d(sys,0.001),0.001); h1=evalfr(sysc,1); h2=evalfr(sysc,0.5);",
+        "sysc=d2c(c2d(sys,1),1); h1=evalfr(sysc,1); h2=evalfr(sysc,0.5);"
+      ],
+      "abnormal": [
+        "sysc=d2c(sysd,0); h1=evalfr(sysc,1); h2=evalfr(sysc,0.5);",
+        "sysc=d2c(sysd,'bad'); h1=evalfr(sysc,1); h2=evalfr(sysc,0.5);"
+      ]
+    },
+    {
+      "name": "d2d",
+      "setup": "sys=tf([1],[1 2 1]); sysd=c2d(sys,0.1);",
+      "compare": ["h1", "h2"],
+      "matlab": true,
+      "tol": 1e-6,
+      "normal": [
+        "sd=d2d(sysd,0.1,0.2); h1=evalfr(sd,1); h2=evalfr(sd,0.5);",
+        "sd=d2d(sysd,0.1,0.2,'tustin'); h1=evalfr(sd,1); h2=evalfr(sd,0.5);",
+        "sd=d2d(c2d(tf([1 1],[1 2 3]),0.2),0.2,0.1); h1=evalfr(sd,1); h2=evalfr(sd,0.5);"
+      ],
+      "boundary": [
+        "sd=d2d(sysd,0.1,0.1); h1=evalfr(sd,1); h2=evalfr(sd,0.5);",
+        "sd=d2d(sysd,0.1,1); h1=evalfr(sd,1); h2=evalfr(sd,0.5);"
+      ],
+      "abnormal": [
+        "sd=d2d(sysd,0,0.2); h1=evalfr(sd,1); h2=evalfr(sd,0.5);",
+        "sd=d2d(sysd,0.1,0.2,'bad'); h1=evalfr(sd,1); h2=evalfr(sd,0.5);"
+      ]
+    },
+    {
+      "name": "dlqr",
+      "setup": "A=[1 0.1;0 0.9]; B=[0;0.1]; Q=eye(2); R=1;",
+      "compare": ["K", "S", "e"],
+      "matlab": true,
+      "tol": 1e-6,
+      "normal": [
+        "[K,S,e]=dlqr(A,B,Q,R);",
+        "[K,S,e]=dlqr(A,B,2*Q,1);",
+        "[K,S,e]=dlqr([0.9 0.2;0 0.8],[0;1],Q,2);"
+      ],
+      "boundary": [
+        "[K,S,e]=dlqr(A,B,Q,1);",
+        "[K,S,e]=dlqr(A,B,Q,10);"
+      ],
+      "abnormal": [
+        "[K,S,e]=dlqr(A,B,Q,0);",
+        "[K,S,e]=dlqr(A,B,-Q,1);"
+      ]
+    },
+    {
+      "name": "evalfr",
+      "setup": "sys=tf([1 2],[1 2 1]);",
+      "compare": ["h"],
+      "matlab": true,
+      "tol": 1e-10,
+      "normal": [
+        "h=evalfr(sys,1);",
+        "h=evalfr(sys,0);",
+        "h=evalfr(sys,1+1i);"
+      ],
+      "boundary": [
+        "h=evalfr(sys,0);",
+        "h=evalfr(sys,100);"
+      ],
+      "abnormal": [
+        "h=evalfr(sys,-1);",
+        "h=evalfr([],1);"
+      ]
+    },
+    {
+      "name": "freqresp",
+      "setup": "sys=tf([1],[1 2 1]); w=logspace(-2,2,20);",
+      "compare": ["H"],
+      "matlab": true,
+      "tol": 1e-6,
+      "normal": [
+        "H=squeeze(freqresp(sys,w));",
+        "H=squeeze(freqresp(tf([1 1],[1 2 3]),w));",
+        "H=squeeze(freqresp(tf([1],[1 1]),w));"
+      ],
+      "boundary": [
+        "H=squeeze(freqresp(sys,0));",
+        "H=squeeze(freqresp(sys,100));"
+      ],
+      "abnormal": [
+        "H=squeeze(freqresp(sys,-1));",
+        "H=squeeze(freqresp([],w));"
+      ]
+    },
+    {
+      "name": "initial",
+      "setup": "sys=tf([1],[1 2 1]); x0=[1;0]; t=(0:0.1:1)';",
+      "compare": ["y", "tout"],
+      "matlab": true,
+      "tol": 1e-4,
+      "normal": [
+        "[y,tout]=initial(sys,x0,t);",
+        "[y,tout]=initial(sys,[0;1],t);",
+        "[y,tout]=initial(tf([1],[1 1]),[1],t);"
+      ],
+      "boundary": [
+        "[y,tout]=initial(sys,x0,0);",
+        "[y,tout]=initial(sys,x0,(0:0.01:0.1)');"
+      ],
+      "abnormal": [
+        "[y,tout]=initial(sys,[1],t);",
+        "[y,tout]=initial([],x0,t);"
+      ]
+    },
+    {
+      "name": "isct",
+      "setup": "sys=tf([1],[1 2 1]); sysd=c2d(sys,0.1);",
+      "compare": ["y"],
+      "matlab": true,
+      "tol": 0,
+      "normal": [
+        "y=isct(sys);",
+        "y=isct(tf([1],[1 1]));",
+        "y=isct(tf([1 1],[1 2 3]));"
+      ],
+      "boundary": [
+        "y=isct(sysd);",
+        "y=isct(tf([1],[1]));"
+      ],
+      "abnormal": [
+        "y=isct([]);",
+        "y=isct(1);"
+      ]
+    },
+    {
+      "name": "isdt",
+      "setup": "sys=tf([1],[1 2 1]); sysd=c2d(sys,0.1);",
+      "compare": ["y"],
+      "matlab": true,
+      "tol": 0,
+      "normal": [
+        "y=isdt(sysd);",
+        "y=isdt(c2d(tf([1],[1 1]),0.2));",
+        "y=isdt(c2d(tf([1 1],[1 2 3]),0.1));"
+      ],
+      "boundary": [
+        "y=isdt(sys);",
+        "y=isdt(tf([1],[1]));"
+      ],
+      "abnormal": [
+        "y=isdt([]);",
+        "y=isdt(1);"
+      ]
+    },
+    {
+      "name": "kalman",
+      "setup": "sys=ss([-1 0;0 -2],[1;1],[1 0],0); Q=eye(2); R=1;",
+      "compare": ["L", "P"],
+      "matlab": false,
+      "note": "本项目返回数值增益 L 与误差协方差 P（MATLAB 首输出为估计器模型）；R=0 时 Riccati/特征分解不收敛会超时",
+      "tol": 1e-6,
+      "normal": [
+        "[L,P]=kalman(sys,Q,R);",
+        "[L,P]=kalman(sys,2*Q,1);",
+        "[L,P]=kalman(ss(-1,1,1,0),1,1);"
+      ],
+      "boundary": [
+        "[L,P]=kalman(sys,Q,1);",
+        "[L,P]=kalman(sys,Q,10);"
+      ],
+      "abnormal": [
+        "[L,P]=kalman(sys,Q,0);",
+        "[L,P]=kalman([],Q,R);"
+      ]
+    },
+    {
+      "name": "lsim",
+      "setup": "sys=tf([1],[1 2 1]); t=(0:0.1:1)'; u=ones(size(t));",
+      "compare": ["y", "tout"],
+      "matlab": true,
+      "tol": 1e-3,
+      "normal": [
+        "[y,tout]=lsim(sys,u,t);",
+        "[y,tout]=lsim(sys,sin(t),t);",
+        "[y,tout]=lsim(sys,u,t,[1;0]);"
+      ],
+      "boundary": [
+        "[y,tout]=lsim(sys,1,0);",
+        "[y,tout]=lsim(sys,u,(0:0.01:0.1)');"
+      ],
+      "abnormal": [
+        "[y,tout]=lsim(sys,u(1:5),t);",
+        "[y,tout]=lsim([],u,t);"
+      ]
+    },
+    {
+      "name": "margin",
+      "setup": "sys=tf([1],[1 2 1]);",
+      "compare": ["Gm", "Pm", "Wcg", "Wcp"],
+      "matlab": true,
+      "tol": 1e-3,
+      "normal": [
+        "[Gm,Pm,Wcg,Wcp]=margin(sys);",
+        "[Gm,Pm,Wcg,Wcp]=margin(tf([1],[1 1 1]));",
+        "[Gm,Pm,Wcg,Wcp]=margin(tf([1 1],[1 2 3]));"
+      ],
+      "boundary": [
+        "[Gm,Pm,Wcg,Wcp]=margin(tf([1],[1]));",
+        "[Gm,Pm,Wcg,Wcp]=margin(tf([1],[1 0]));"
+      ],
+      "abnormal": [
+        "[Gm,Pm,Wcg,Wcp]=margin([]);",
+        "[Gm,Pm,Wcg,Wcp]=margin(1);"
+      ]
+    },
+    {
+      "name": "minreal",
+      "setup": "sys=tf([1 2],[1 3 2]);",
+      "compare": ["h1", "h2"],
+      "matlab": true,
+      "tol": 1e-6,
+      "normal": [
+        "sysr=minreal(sys); h1=evalfr(sysr,1); h2=evalfr(sysr,0.5);",
+        "sysr=minreal(sys,1e-6); h1=evalfr(sysr,1); h2=evalfr(sysr,0.5);",
+        "sysr=minreal(tf([1 2 1],[1 3 3 1])); h1=evalfr(sysr,1); h2=evalfr(sysr,0.5);"
+      ],
+      "boundary": [
+        "sysr=minreal(tf([1],[1 1]),1e-12); h1=evalfr(sysr,1); h2=evalfr(sysr,0.5);",
+        "sysr=minreal(tf([1],[1 1]),1); h1=evalfr(sysr,1); h2=evalfr(sysr,0.5);"
+      ],
+      "abnormal": [
+        "sysr=minreal(sys,-1); h1=evalfr(sysr,1); h2=evalfr(sysr,0.5);",
+        "sysr=minreal([],1e-6); h1=evalfr(sysr,1); h2=evalfr(sysr,0.5);"
+      ]
+    },
+    {
+      "name": "nichols",
+      "setup": "sys=tf([1],[1 2 1]); w=logspace(-2,2,20);",
+      "compare": ["mag", "phase"],
+      "matlab": true,
+      "note": "mag 为绝对幅值，phase 为角度（与 MATLAB 一致）",
+      "tol": 1e-6,
+      "normal": [
+        "[mag,phase,wout]=nichols(sys,w); mag=squeeze(mag); phase=squeeze(phase);",
+        "[mag,phase,wout]=nichols(tf([1 1],[1 2 3]),w); mag=squeeze(mag); phase=squeeze(phase);",
+        "[mag,phase,wout]=nichols(tf([1],[1 1]),w); mag=squeeze(mag); phase=squeeze(phase);"
+      ],
+      "boundary": [
+        "[mag,phase,wout]=nichols(sys,0); mag=squeeze(mag); phase=squeeze(phase);",
+        "[mag,phase,wout]=nichols(sys,100); mag=squeeze(mag); phase=squeeze(phase);"
+      ],
+      "abnormal": [
+        "[mag,phase,wout]=nichols(sys,-1); mag=squeeze(mag); phase=squeeze(phase);",
+        "[mag,phase,wout]=nichols([],w); mag=squeeze(mag); phase=squeeze(phase);"
+      ]
+    },
+    {
+      "name": "parallel",
+      "setup": "sys1=tf([1],[1 1]); sys2=tf([1],[1 2]);",
+      "compare": ["h1", "h2"],
+      "matlab": true,
+      "tol": 1e-8,
+      "normal": [
+        "sysp=parallel(sys1,sys2); h1=evalfr(sysp,1); h2=evalfr(sysp,0.5);",
+        "sysp=parallel(sys1,sys1); h1=evalfr(sysp,1); h2=evalfr(sysp,0.5);",
+        "sysp=parallel(tf([1],[1 1]),tf([1 1],[1 2 3])); h1=evalfr(sysp,1); h2=evalfr(sysp,0.5);"
+      ],
+      "boundary": [
+        "sysp=parallel(sys1,tf([0],[1])); h1=evalfr(sysp,1); h2=evalfr(sysp,0.5);",
+        "sysp=parallel(sys1,sys1); h1=evalfr(sysp,1); h2=evalfr(sysp,0.5);"
+      ],
+      "abnormal": [
+        "sysp=parallel(sys1,[]); h1=evalfr(sysp,1); h2=evalfr(sysp,0.5);",
+        "sysp=parallel([],sys2); h1=evalfr(sysp,1); h2=evalfr(sysp,0.5);"
+      ]
+    },
+    {
+      "name": "place",
+      "setup": "A=[0 1;-2 -3]; B=[0;1]; p=[-4;-5];",
+      "compare": ["K"],
+      "matlab": true,
+      "tol": 1e-8,
+      "normal": [
+        "K=place(A,B,p);",
+        "K=place(A,B,[-1;-2]);",
+        "K=place([0 1;-1 -2],[0;1],[-3;-4]);"
+      ],
+      "boundary": [
+        "K=place(-1,1,-2);",
+        "K=place(A,B,[-10;-20]);"
+      ],
+      "abnormal": [
+        "K=place(A,B,[-1]);",
+        "K=place([1 0;0 1],[0;0],[-1;-2]);"
+      ]
+    },
+    {
+      "name": "series",
+      "setup": "sys1=tf([1],[1 1]); sys2=tf([1],[1 2]);",
+      "compare": ["h1", "h2"],
+      "matlab": true,
+      "tol": 1e-8,
+      "normal": [
+        "syss=series(sys1,sys2); h1=evalfr(syss,1); h2=evalfr(syss,0.5);",
+        "syss=series(sys1,sys1); h1=evalfr(syss,1); h2=evalfr(syss,0.5);",
+        "syss=series(tf([1],[1 1]),tf([1 1],[1 2 3])); h1=evalfr(syss,1); h2=evalfr(syss,0.5);"
+      ],
+      "boundary": [
+        "syss=series(sys1,tf([1],[1])); h1=evalfr(syss,1); h2=evalfr(syss,0.5);",
+        "syss=series(sys1,sys1); h1=evalfr(syss,1); h2=evalfr(syss,0.5);"
+      ],
+      "abnormal": [
+        "syss=series(sys1,[]); h1=evalfr(syss,1); h2=evalfr(syss,0.5);",
+        "syss=series([],sys2); h1=evalfr(syss,1); h2=evalfr(syss,0.5);"
+      ]
+    },
+    {
+      "name": "ss2tf",
+      "setup": "A=[0 1;-2 -3]; B=[0;1]; C=[1 0]; D=0;",
+      "compare": ["num", "den"],
+      "matlab": true,
+      "tol": 1e-10,
+      "normal": [
+        "[num,den]=ss2tf(A,B,C,D,1);",
+        "[num,den]=ss2tf(A,B,C,D);",
+        "[num,den]=ss2tf([-1 0;0 -2],[1;1],[1 0],0,1);"
+      ],
+      "boundary": [
+        "[num,den]=ss2tf(-1,1,1,0,1);",
+        "[num,den]=ss2tf(A,B,C,D,1);"
+      ],
+      "abnormal": [
+        "[num,den]=ss2tf(A,B,C,D,2);",
+        "[num,den]=ss2tf([],[],[],[],1);"
+      ]
+    },
+    {
+      "name": "ss2zp",
+      "setup": "A=[0 1;-2 -3]; B=[0;1]; C=[1 0]; D=0;",
+      "compare": ["z", "p", "k"],
+      "matlab": true,
+      "note": "本项目 ss2zp 为 4 参数形式，不支持 MATLAB 的通道索引 IU",
+      "tol": 1e-8,
+      "normal": [
+        "[z,p,k]=ss2zp(A,B,C,D);",
+        "[z,p,k]=ss2zp([0 1;-1 -2],[0;1],[1 0],0);",
+        "[z,p,k]=ss2zp([-1 0;0 -2],[1;1],[1 0],0);"
+      ],
+      "boundary": [
+        "[z,p,k]=ss2zp(-1,1,1,0);",
+        "[z,p,k]=ss2zp([0 1;-2 -3],[0;1],[0 1],0);"
+      ],
+      "abnormal": [
+        "[z,p,k]=ss2zp(A,B,C,D,2);",
+        "[z,p,k]=ss2zp([],[],[],[],1);"
+      ]
+    },
+    {
+      "name": "ssdata",
+      "setup": "sys=ss([-1 0;0 -2],[1;1],[1 0],0);",
+      "compare": ["A2", "B2", "C2", "D2"],
+      "matlab": true,
+      "tol": 1e-10,
+      "normal": [
+        "[A2,B2,C2,D2]=ssdata(sys);",
+        "[A2,B2,C2,D2]=ssdata(ss(-1,1,1,0));",
+        "[A2,B2,C2,D2]=ssdata(ss([0 1;-2 -3],[0;1],[1 0],0));"
+      ],
+      "boundary": [
+        "[A2,B2,C2,D2]=ssdata(ss(-1,1,1,0));",
+        "[A2,B2,C2,D2]=ssdata(ss(zeros(2),ones(2,1),ones(1,2),0));"
+      ],
+      "abnormal": [
+        "[A2,B2,C2,D2]=ssdata([]);",
+        "[A2,B2,C2,D2]=ssdata(1);"
+      ]
+    },
+    {
+      "name": "tf2ss",
+      "setup": "num=[1 2]; den=[1 3 2];",
+      "compare": ["A2", "B2", "C2", "D2"],
+      "matlab": true,
+      "tol": 1e-10,
+      "normal": [
+        "[A2,B2,C2,D2]=tf2ss(num,den);",
+        "[A2,B2,C2,D2]=tf2ss([1],[1 2 1]);",
+        "[A2,B2,C2,D2]=tf2ss([2 1],[1 4 3]);"
+      ],
+      "boundary": [
+        "[A2,B2,C2,D2]=tf2ss([1],[1 1]);",
+        "[A2,B2,C2,D2]=tf2ss([1 0 0],[1 3 3 1]);"
+      ],
+      "abnormal": [
+        "[A2,B2,C2,D2]=tf2ss([1],[0 1]);",
+        "[A2,B2,C2,D2]=tf2ss([],[]);"
+      ]
+    },
+    {
+      "name": "tf2zp",
+      "setup": "num=[1 2]; den=[1 3 2];",
+      "compare": ["z", "p", "k"],
+      "matlab": true,
+      "tol": 1e-8,
+      "normal": [
+        "[z,p,k]=tf2zp(num,den);",
+        "[z,p,k]=tf2zp([1],[1 2 1]);",
+        "[z,p,k]=tf2zp([2 1],[1 4 3]);"
+      ],
+      "boundary": [
+        "[z,p,k]=tf2zp([1],[1 1]);",
+        "[z,p,k]=tf2zp([1 0 0],[1 3 3 1]);"
+      ],
+      "abnormal": [
+        "[z,p,k]=tf2zp([1],[0 1]);",
+        "[z,p,k]=tf2zp([],[]);"
+      ]
+    },
+    {
+      "name": "tfdata",
+      "setup": "sys=tf([1 2],[1 3 2]);",
+      "compare": ["num", "den"],
+      "matlab": true,
+      "tol": 1e-10,
+      "normal": [
+        "[num,den]=tfdata(sys);",
+        "[num,den]=tfdata(tf([1],[1 2 1]));",
+        "[num,den]=tfdata(tf([2 1],[1 4 3]));"
+      ],
+      "boundary": [
+        "[num,den]=tfdata(tf([1],[1 1]));",
+        "[num,den]=tfdata(tf([1],[1]));"
+      ],
+      "abnormal": [
+        "[num,den]=tfdata([]);",
+        "[num,den]=tfdata(1);"
+      ]
+    },
+    {
+      "name": "zp2ss",
+      "setup": "z=[-1]; p=[-2;-3]; k=1;",
+      "compare": ["A2", "B2", "C2", "D2"],
+      "matlab": true,
+      "tol": 1e-8,
+      "normal": [
+        "[A2,B2,C2,D2]=zp2ss(z,p,k);",
+        "[A2,B2,C2,D2]=zp2ss([],[-1;-2],2);",
+        "[A2,B2,C2,D2]=zp2ss([-1;-2],[-3;-4],1);"
+      ],
+      "boundary": [
+        "[A2,B2,C2,D2]=zp2ss([],-1,1);",
+        "[A2,B2,C2,D2]=zp2ss([-1;-2;-3],[-4;-5;-6],1);"
+      ],
+      "abnormal": [
+        "[A2,B2,C2,D2]=zp2ss(z,[],k);",
+        "[A2,B2,C2,D2]=zp2ss([],[],0);"
+      ]
+    },
+    {
+      "name": "zp2tf",
+      "setup": "z=[-1]; p=[-2;-3]; k=1;",
+      "compare": ["num", "den"],
+      "matlab": true,
+      "note": "num 与 MATLAB 一样补前导零，使其长度等于 den",
+      "tol": 1e-8,
+      "normal": [
+        "[num,den]=zp2tf(z,p,k);",
+        "[num,den]=zp2tf([],[-1;-2],2);",
+        "[num,den]=zp2tf([-1;-2],[-3;-4],1);"
+      ],
+      "boundary": [
+        "[num,den]=zp2tf([],-1,1);",
+        "[num,den]=zp2tf([-1;-2;-3],[-4;-5;-6],1);"
+      ],
+      "abnormal": [
+        "[num,den]=zp2tf(z,[],k);",
+        "[num,den]=zp2tf([],[],0);"
+      ]
+    },
+    {
+      "name": "pzplot",
+      "setup": "sys=tf([1 2],[1 3]); sys0=tf(1,[1 2]); sysss=ss(-1,1,1,0);",
+      "compare": ["p", "z"],
+      "matlab": true,
+      "tol": 0.000001,
+      "note": "TensorLab 的 pzplot 是 pzmap 的绘图包装（不返回 chart 对象）；用例通过 pzmap 校验同一数据路径",
+      "normal": [
+        "pzplot(sys); [p,z]=pzmap(sys);",
+        "pzplot(sys0); [p,z]=pzmap(sys0);",
+        "pzplot(sysss); [p,z]=pzmap(sysss);"
+      ],
+      "boundary": [
+        "pzplot(tf(1,[1 0 1])); [p,z]=pzmap(tf(1,[1 0 1]));",
+        "pzplot(tf(1,[1 0])); [p,z]=pzmap(tf(1,[1 0]));"
+      ],
+      "abnormal": [
+        "pzplot(1); [p,z]=pzmap(1);",
+        "pzplot([]); [p,z]=pzmap([]);"
+      ]
+    }
+  ]
+}

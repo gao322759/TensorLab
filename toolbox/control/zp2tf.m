@@ -29,4 +29,9 @@ function [num, den] = zp2tf(z, p, k)
         end
     end
     num = k * num;
+    % MATLAB 用前导零把 num 补到与 den 等长
+    if numel(num) < numel(den)
+        pad = zeros(1, numel(den) - numel(num));
+        num = [pad, num];
+    end
 end

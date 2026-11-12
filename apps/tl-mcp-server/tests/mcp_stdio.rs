@@ -228,24 +228,43 @@ fn unknown_tool_reports_error_text() {
 // ---------------- 协议健壮性 ----------------
 
 #[test]
-fn malformed_json_line_is_ignored_and_session_survives() {
+fn malformed_json_returns_parse_errors_and_session_survives() {
     let resps = session(&[
         "this is not json".to_string(),
         "{also: not, json}".to_string(),
         req(12, "tools/list"),
     ]);
-    assert_eq!(resps.len(), 1, "坏 JSON 不应产生响应: {resps:?}");
-    assert_eq!(resps[0]["id"], 12);
-    assert!(resps[0]["result"]["tools"].is_array());
+    assert_eq!(
+        resps.len(),
+        3,
+        "每条坏 JSON 都应返回 Parse error: {resps:?}"
+    );
+    for resp in &resps[..2] {
+        assert_eq!(resp["error"]["code"], -32700);
+        assert!(resp["id"].is_null());
+    }
+    assert_eq!(resps[2]["id"], 12);
+    assert!(resps[2]["result"]["tools"].is_array());
 }
 
 #[test]
-fn unknown_method_returns_a_response_without_crashing() {
+fn unknown_method_returns_method_not_found() {
     let resps = session(&[req(13, "no/such/method")]);
     assert_eq!(resps.len(), 1);
     assert_eq!(resps[0]["jsonrpc"], "2.0");
-    // 方法未知 → result 为 null（当前实现），关键是进程不崩且给出响应
-    assert!(resps[0].get("result").is_some(), "{:?}", resps[0]);
+    assert_eq!(resps[0]["error"]["code"], -32601);
+    assert!(resps[0].get("result").is_none(), "{:?}", resps[0]);
+}
+
+#[test]
+fn notifications_are_not_answered() {
+    let resps = session(&[
+        r#"{"jsonrpc":"2.0","method":"custom/notification"}"#.to_string(),
+        r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#.to_string(),
+        req(15, "tools/list"),
+    ]);
+    assert_eq!(resps.len(), 1, "通知不得产生响应: {resps:?}");
+    assert_eq!(resps[0]["id"], 15);
 }
 
 #[test]

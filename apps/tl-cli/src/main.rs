@@ -25,6 +25,26 @@ fn run() -> anyhow::Result<()> {
                 .ok_or_else(|| anyhow::anyhow!("usage: tensorlab run <script.m>"))?;
             run_script(&path)
         }
+        Some("snapshot") => {
+            // tensorlab snapshot <out.tlsession> <script.m> — 运行后落盘 workspace
+            let out = args
+                .next()
+                .ok_or_else(|| anyhow::anyhow!("usage: tensorlab snapshot <out.tlsession> <script.m>"))?;
+            let path = args
+                .next()
+                .ok_or_else(|| anyhow::anyhow!("usage: tensorlab snapshot <out.tlsession> <script.m>"))?;
+            run_then_snapshot(&out, &path)
+        }
+        Some("resume") => {
+            // tensorlab resume <session.tlsession> <script.m> — 恢复后继续运行
+            let session = args
+                .next()
+                .ok_or_else(|| anyhow::anyhow!("usage: tensorlab resume <session.tlsession> <script.m>"))?;
+            let path = args
+                .next()
+                .ok_or_else(|| anyhow::anyhow!("usage: tensorlab resume <session.tlsession> <script.m>"))?;
+            resume_and_run(&session, &path)
+        }
         Some("bench") => {
             let rest: Vec<String> = args.collect();
             let no_jit = rest.iter().any(|arg| arg == "--no-jit");
@@ -43,13 +63,53 @@ fn run() -> anyhow::Result<()> {
             Ok(())
         }
         Some(other) => Err(anyhow::anyhow!(
-            "unknown command '{other}'. usage: tensorlab [run <script.m> | bench [--no-jit] [--aot] | help | version]"
+            "unknown command '{other}'. usage: tensorlab [run <script.m> | snapshot <out.tlsession> <script.m> | resume <session.tlsession> <script.m> | bench [--no-jit] [--aot] | help | version]"
         )),
     }
 }
 
 fn run_script(path: &str) -> anyhow::Result<()> {
     let mut engine = Engine::new()?;
+    let report = run_file(&mut engine, path)?;
+    print_report(&report);
+    if let Some(err) = &report.error {
+        let line = err.line.map(|l| format!(" (line {l})")).unwrap_or_default();
+        eprintln!("Error{line}: {}", err.message);
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
+/// `tensorlab snapshot`：运行脚本后把 workspace 字节级快照落盘（plan.md 4.2）。
+fn run_then_snapshot(out: &str, path: &str) -> anyhow::Result<()> {
+    let mut engine = Engine::new()?;
+    let report = run_file(&mut engine, path)?;
+    print_report(&report);
+    if let Some(err) = &report.error {
+        let line = err.line.map(|l| format!(" (line {l})")).unwrap_or_default();
+        eprintln!("Error{line}: {}", err.message);
+        std::process::exit(1);
+    }
+    let bytes = engine.snapshot_workspace()?;
+    std::fs::write(out, &bytes)?;
+    eprintln!(
+        "workspace snapshot written: {} ({} bytes)",
+        out,
+        bytes.len()
+    );
+    Ok(())
+}
+
+/// `tensorlab resume`：从快照恢复 workspace 后继续运行脚本。
+fn resume_and_run(session_file: &str, path: &str) -> anyhow::Result<()> {
+    let mut engine = Engine::new()?;
+    let bytes = std::fs::read(session_file)?;
+    engine.restore_workspace(&bytes)?;
+    eprintln!(
+        "workspace restored from {} ({} bytes)",
+        session_file,
+        bytes.len()
+    );
     let report = run_file(&mut engine, path)?;
     print_report(&report);
     if let Some(err) = &report.error {

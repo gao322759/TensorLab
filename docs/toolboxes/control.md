@@ -7,7 +7,7 @@
 
 涵盖：LTI 模型（传递函数/状态空间/零极点）、模型互联、时域响应、频域响应、稳定性与裕度、极点配置与 LQR。
 
-**不做**（➖）：Simulink、Robust Control / MPC 工具箱、`frd` 的完整频响数据对象、`tunablePID` 自动整定（`pidtune` 可选后置）。
+**不做**（➖）：Simulink、Robust Control / MPC 工具箱、`frd` 的完整频响数据对象、`tunablePID` 自动整定（`pidtune` 可选后置）。完整清单与逐项原因见下方「不做清单」。
 
 ## 二、函数清单
 
@@ -61,7 +61,7 @@
 | 函数 | 签名 | 语义要点 | R2026a | v0.1 状态 |
 |------|------|----------|--------|-----------|
 | `pole` / `zero` | `p = pole(sys)` | 极点/零点 | ✅ | ✅ 内核 |
-| `pzmap` / `pzplot` | `[p,z] = pzmap(sys)` | 零极点图 | ✅ | ✅ 内核（数值） |
+| `pzmap` / `pzplot` | `[p,z] = pzmap(sys)` | 零极点图 | ✅ | ✅ 内核（`pzmap` 数值）；✅ `toolbox/control/pzplot.m`（绘图包装：极点 `x`、零点 `o`） |
 | `dcgain` | `k = dcgain(sys)` | 直流增益 | ✅ | ✅ 内核 |
 | `damp` | `[wn,zeta,p] = damp(sys)` | 自然频率/阻尼 | ✅ | ✅ 内核 |
 | `isstable` | `tf = isstable(sys)` | 稳定性 | ✅ | ✅ 内核 |
@@ -96,18 +96,40 @@
 | `ss2zp` / `zp2ss` | 状态空间↔零极点 | ✅ | ✅ `toolbox/control/{ss2zp,zp2ss}.m` |
 | `tfdata` / `ssdata` / `zpkdata` | `[num,den] = tfdata(sys)` | 提取模型数据 | ✅ | ✅ `toolbox/control/{tfdata,ssdata}.m`（`zpkdata` 需 `zpk` class，⬜） |
 
+### 不做清单（v0.x 边界）
+
+> 判定标准：不属于“每箱 20–30 个核心函数”；或依赖缺失的底层能力 / 交互界面；或使用面过窄。
+> 标记为“不做”意味着 **v0.x 不以完整 MATLAB 工具箱对标为目标**；若将来改为全量对标，本表整体转为 v0.3+ 待办。
+
+| 函数 | 类别 | 不做的原因 |
+|---|---|---|
+| `frd` | 模型构造 | 需要新的频响数据模型对象（classdef，受 K8 限制）；v0.x 只做 `tf`/`ss` 数值模型 |
+| `connect` | 模型互联 | 需要按信号名连接的模型图，等同 Simulink 式建模，触碰“不做 Simulink”边界 |
+| `sumblk` | 模型互联 | 仅服务于 `connect`，随其排除 |
+| `lyap` | 分析 | Lyapunov 方程求解；仅被 `gram`/`balreal`/`covar` 使用，而这三者均不做 |
+| `lyapchol` | 分析 | `lyap` 的 Cholesky 变体，使用面更窄 |
+| `gram` | 分析 | 可控/可观 Gramian；依赖 `lyap`，服务对象 `balreal` 已排除 |
+| `covar` | 分析 | 白噪声协方差响应；高级分析，使用面窄 |
+| `ssbal` | 分析 | 状态空间尺度平衡；数值细节多、使用面窄 |
+| `balreal` | 稳定性/实现 | 需 Gramian/Lyapunov 求解（`lyap`/`gram` 均缺），且不在核心清单 |
+| `sigma` | 频域响应 | MIMO 奇异值频响图；当前 `freqresp`/`bode` 仅 SISO，且无 plot 对象语义 |
+| `estim` | 设计 | 观测器设计；主流状态估计已由 `kalman` 覆盖 |
+| `reg` | 设计 | LQG 调节器（`lqr` + `kalman` 组合）；超出核心设计函数 |
+| `rlocfind` | 设计 | 交互选点；无头引擎与桌面 SVG 渲染器均无交互能力（见 [gaps.md](../gaps.md) A2） |
+| `pidtune` | 设计 | 自动整定算法复杂，文档已标注“可选后置” |
+
 ## 三、v0.2 实现清单（缺口）
 
 v0.2 已交付：`bode`、`bodemag`、`margin`、`allmargin`、`nichols`、`series`、`parallel`、`evalfr`、
 `freqresp`、`place`、`acker`、`isct`/`isdt`、`tfdata`、`ssdata`、`minreal`、`dlqr`、`kalman`、
-`c2d`、`d2c`、`d2d`、`ss2zp`、`zp2ss`（共 20+ 个可用函数）。
+`c2d`、`d2c`、`d2d`、`ss2zp`、`zp2ss`、`pzplot`（共 20+ 个可用函数）。
 
 仍缺（诚实清单）：
 
 1. **`zpk` / `pid` / `pidstd`**：需要内核提供对应 class（v0.2 无），无法返回模型对象。
 2. **`zpkdata`**：依赖 `zpk` class。
 3. **`c2d` 的 `zoh`**：要求极点互异且非零；否则自动回退 Tustin（文档化）。
-4. **不做**：`frd`、`connect`、`sumblk`、`rlocfind`、`pidtune`、`balreal`。
+4. **不做**：`frd`、`connect`、`sumblk`、`balreal`、`rlocfind`、`pidtune`、`lyap`、`lyapchol`、`gram`、`covar`、`ssbal`、`sigma`、`estim`、`reg`（共 14 项，逐项原因见 §二「不做清单」）。
 
 ## 四、实现笔记（clean-room 出处）
 

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TensorLab — UI paradigm study (MATLAB R2026a)</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- icon sprite: original shapes, generic metaphors (no copied artwork) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="ico-new" viewBox="0 0 24 24"><path d="M6 2h8l4 4v16H6z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M14 2v5h5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 11v7M8.5 14.5h7" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-open" viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 10h18" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-save" viewBox="0 0 24 24"><path d="M4 3h12l4 4v14H4z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 3v6h8V3M8 21v-7h8v7" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-print" viewBox="0 0 24 24"><path d="M7 4h10v4H7zM4 8h16v8h-3v4H7v-4H4z" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-find" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15 15l5.5 5.5" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-file" viewBox="0 0 24 24"><path d="M6 2h8l4 4v16H6z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M14 2v5h5" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-folder" viewBox="0 0 24 24"><path d="M3 6h6l2 2h10v11H3z" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-import" viewBox="0 0 24 24"><path d="M4 15v5h16v-5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v10M8 9l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-clear" viewBox="0 0 24 24"><path d="M4 17h10M6 14l8-8 4 4-8 8H6z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M14 20h7" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="7.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 9v4.5l3 2M9 2h6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-star" viewBox="0 0 24 24"><path d="M12 3.5l2.7 5.6 6.1.8-4.5 4.3 1.1 6-5.4-3-5.4 3 1.1-6L3.2 9.9l6.1-.8z" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="ico-simulink" viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="14" width="8" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M11 7h3a2 2 0 012 2v5" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-layout" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9 4v16M3 12h6" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-path" viewBox="0 0 24 24"><path d="M12 3v6" stroke="currentColor" stroke-width="1.6"/><rect x="4" y="9" width="16" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 20h8" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-addon" viewBox="0 0 24 24"><path d="M10 4a2 2 0 014 0v2h3a1 1 0 011 1v3h2a2 2 0 010 4h-2v3a1 1 0 01-1 1h-3v-2a2 2 0 00-4 0v2H6a1 1 0 01-1-1v-3H3a2 2 0 010-4h2V7a1 1 0 011-1h4z" fill="none" stroke="currentColor" stroke-width="1.4"/></symbol>
+    <symbol id="ico-parallel" viewBox="0 0 24 24"><path d="M7 4v16M12 4v16M17 4v16" stroke="currentColor" stroke-width="1.7"/></symbol>
+    <symbol id="ico-support" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9.5 9.5a2.6 2.6 0 115.1.9c0 1.6-2.6 1.9-2.6 3.6" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="17.2" r="1" fill="currentColor"/></symbol>
+    <symbol id="ico-feedback" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 9h8M8 12h5" stroke="currentColor" stroke-width="1.4"/></symbol>
+    <symbol id="ico-book" viewBox="0 0 24 24"><path d="M4 4h7a3 3 0 013 3v13a2.5 2.5 0 00-2.5-2.5H4zM20 4h-4a3 3 0 00-3 3v13" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="ico-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M9.4 9.4a2.7 2.7 0 115.2 1c0 1.7-2.6 2-2.6 3.7" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="17" r="1" fill="currentColor"/></symbol>
+    <symbol id="ico-run" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="ico-step" viewBox="0 0 24 24"><path d="M6 4l10 8-10 8z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19 4v16" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="ico-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="ico-plot" viewBox="0 0 24 24"><path d="M4 3v17h17" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 16l4-5 3 3 5-7" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+    <symbol id="ico-table" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 9h18M9 9v11M15 9v11" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="ico-code" viewBox="0 0 24 24"><path d="M9 6L3 12l6 6M15 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+    <symbol id="ico-figure" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6 15l3.5-5 3 4 2.5-3 3 4" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 2.8v2.4M12 18.8v2.4M4.5 12H2.1M21.9 12h-2.4M6.7 6.7L5 5M19 19l-1.7-1.7M6.7 17.3L5 19M19 5l-1.7 1.7" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1.2 13h9.6L18 7" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="ico-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="ico-dots" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="18" cy="12" r="1.6" fill="currentColor"/></symbol>
+    <symbol id="ico-sort" viewBox="0 0 24 24"><path d="M8 9l4-4 4 4M8 15l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 11v6" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="7.8" r="1" fill="currentColor"/></symbol>
+    <symbol id="ico-history" viewBox="0 0 24 24"><path d="M4 12a8 8 0 108-8 8 8 0 00-6.6 3.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 4v4h4M12 8v4.5l3.2 1.9" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="ico-pan" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="1.5"/><path d="M12 3l-2.5 2.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
+    <symbol id="ico-zoom" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M15 15l5.5 5.5M8 10.5h5M10.5 8v5" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="ico-cursor" viewBox="0 0 24 24"><path d="M6 3l12 8-5.5 1.6L16 20l-2.6 1.2-3.5-7.3L6 18z" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="ico-text" viewBox="0 0 24 24"><path d="M4 6V4h16v2M12 4v16M8 20h8" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <!-- ============================ titlebar ============================ -->
+  <header class="titlebar">
+    <span class="brand"><span class="brand-mark">T</span>TensorLab</span>
+    <span class="doc-title" id="docTitle">untitled.m</span>
+    <span class="titlebar-spacer"></span>
+    <label class="global-search" title="Global search (Ctrl+Shift+Space)">
+      <svg class="ico" width="12" height="12"><use href="#ico-find"/></svg>
+      <input id="globalSearch" type="text" placeholder="Search (Ctrl+Shift+Space)" spellcheck="false">
+    </label>
+    <span class="win-btns">
+      <span class="win-btn" title="Theme" id="themeBtn"><svg width="13" height="13"><use href="#ico-gear"/></svg></span>
+      <span class="win-btn" title="Minimize">–</span>
+      <span class="win-btn" title="Maximize">□</span>
+      <span class="win-btn" title="Close">✕</span>
+    </span>
+  </header>
+
+  <!-- ============================== ribbon ============================= -->
+  <nav class="ribbon">
+    <div class="ribbon-tabs" id="ribbonTabs"></div>
+    <div class="ribbon-body" id="ribbonBody"></div>
+  </nav>
+
+  <!-- ============================= pathbar ============================ -->
+  <div class="pathbar" id="pathbar">
+    <svg class="ico" width="14" height="14" style="color:var(--accent-blue)"><use href="#ico-folder"/></svg>
+    <span class="crumb">D:</span><span class="crumb-sep">›</span>
+    <span class="crumb">work</span><span class="crumb-sep">›</span>
+    <span class="crumb">tensorlab</span><span class="crumb-sep">›</span>
+    <span class="crumb">demos</span><span class="crumb-sep">›</span>
+    <span class="crumb">fft</span>
+  </div>
+
+  <!-- ============================ workspace =========================== -->
+  <main class="workspace">
+
+    <aside class="rail" id="rail">
+      <div class="rail-btn active" title="Current Folder"><svg width="16" height="16"><use href="#ico-folder"/></svg></div>
+      <div class="rail-btn" title="Workspace"><svg width="16" height="16"><use href="#ico-table"/></svg></div>
+      <div class="rail-btn" title="History"><svg width="16" height="16"><use href="#ico-history"/></svg></div>
+      <div class="rail-btn" title="Help"><svg width="16" height="16"><use href="#ico-help"/></svg></div>
+      <div class="rail-btn" title="More"><svg width="16" height="16"><use href="#ico-dots"/></svg></div>
+    </aside>
+
+    <!-- left dock column -->
+    <section class="dock-col left" id="colLeft" data-col="left">
+      <section class="panel" id="panelFolder" data-panel="folder" style="flex:1 1 55%">
+        <div class="panel-head">
+          <div class="ptabs">
+            <span class="ptab active">Current Folder</span>
+            <span class="ptab">Details</span>
+          </div>
+          <div class="panel-tools">
+            <span class="ptool" title="Sort"><svg width="13" height="13"><use href="#ico-sort"/></svg></span>
+            <span class="ptool" title="Info"><svg width="13" height="13"><use href="#ico-info"/></svg></span>
+            <span class="ptool" title="Options"><svg width="13" height="13"><use href="#ico-dots"/></svg></span>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="tree" id="folderTree"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="panelWorkspace" data-panel="workspace" style="flex:1 1 45%">
+        <div class="panel-head">
+          <div class="ptabs">
+            <span class="ptab active">Workspace</span>
+            <span class="ptab">Basis</span>
+          </div>
+          <div class="panel-tools">
+            <span class="ptool" title="Sort"><svg width="13" height="13"><use href="#ico-sort"/></svg></span>
+            <span class="ptool" title="Settings"><svg width="13" height="13"><use href="#ico-gear"/></svg></span>
+            <span class="ptool" title="Options"><svg width="13" height="13"><use href="#ico-dots"/></svg></span>
+          </div>
+        </div>
+        <div class="panel-body" id="wsBody"></div>
+      </section>
+    </section>
+
+    <!-- center dock column -->
+    <section class="dock-col center" id="colCenter" data-col="center">
+      <section class="panel" id="panelEditor" data-panel="editor" style="flex:1 1 60%">
+        <div class="panel-head">
+          <div class="ptabs" id="editorTabs"></div>
+          <div class="panel-tools">
+            <span class="ptool" title="New file"><svg width="13" height="13"><use href="#ico-plus"/></svg></span>
+            <span class="ptool" title="Split editor"><svg width="13" height="13"><use href="#ico-layout"/></svg></span>
+            <span class="ptool" title="Options"><svg width="13" height="13"><use href="#ico-dots"/></svg></span>
+          </div>
+        </div>
+        <div class="panel-body" style="overflow:hidden">
+          <div class="editor-wrap">
+            <div class="gutter" id="gutter"></div>
+            <div class="code-wrap"><div class="code" id="code"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <div class="hsplit" id="splitEditorCmd" title="Drag to resize"></div>
+
+      <section class="panel" id="panelCommand" data-panel="command" style="flex:1 1 40%">
+        <div class="panel-head">
+          <div class="ptabs">
+            <span class="ptab active">Command Window</span>
+          </div>
+          <div class="panel-tools">
+            <span class="ptool" title="Clear"><svg width="13" height="13"><use href="#ico-clear"/></svg></span>
+            <span class="ptool" title="Options"><svg width="13" height="13"><use href="#ico-dots"/></svg></span>
+          </div>
+        </div>
+        <div class="panel-body" id="cmdBody">
+          <div class="banner" id="banner">
+            <span>Unfamiliar with TensorLab? See <a href="#" id="quickStart">Quick Start</a> resources.</span>
+            <span class="dismiss" id="dismissBanner">✕</span>
+          </div>
+          <div class="cmd-body" id="cmdLog"></div>
+          <div class="cmd-body cmd-input-row">
+            <span class="cmd-prompt">&gt;&gt;</span>
+            <input class="cmd-input" id="cmdInput" spellcheck="false" autocomplete="off" placeholder="Type a command (try: plot, who, clc, help)">
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- right dock column -->
+    <section class="dock-col right" id="colRight" data-col="right"></section>
+
+  </main>
+
+  <!-- ============================ statusbar =========================== -->
+  <footer class="statusbar">
+    <span class="st" id="stStatus">Ready</span>
+    <span class="grow"></span>
+    <span class="st" id="stGrid">fast grid</span>
+    <span class="st" id="stPos">Ln 5, Col 1</span>
+    <span class="st" id="stEnc">UTF-8</span>
+    <span class="st" id="stTheme">Light</span>
+  </footer>
+</div>
+
+<!-- preferences dialog -->
+<div class="overlay" id="prefOverlay">
+  <div class="dialog" role="dialog" aria-label="Preferences">
+    <div class="dialog-head">
+      <span>Preferences</span>
+      <span class="close" id="prefClose"><svg width="13" height="13"><use href="#ico-x"/></svg></span>
+    </div>
+    <div class="dialog-body">
+      <div class="pref-nav" id="prefNav">
+        <div class="pref-search"><input id="prefSearch" type="text" placeholder="Search" spellcheck="false"></div>
+        <div class="pref-item" data-node="root"><span class="pref-caret">▾</span>TensorLab</div>
+        <div class="pref-item child" data-node="appearance"><span class="pref-caret">▾</span>Appearance</div>
+        <div class="pref-item child" data-node="appearance-colors" data-leaf="1">Colors</div>
+        <div class="pref-item child" data-node="appearance-fonts" data-leaf="1">Fonts</div>
+        <div class="pref-item child" data-node="editor" data-leaf="1">Editor</div>
+        <div class="pref-item child" data-node="command" data-leaf="1">Command Window</div>
+        <div class="pref-item child" data-node="workspace" data-leaf="1">Workspace</div>
+        <div class="pref-item child" data-node="figure" data-leaf="1">Figure Copy</div>
+        <div class="pref-item child" data-node="layout" data-leaf="1">Layout</div>
+        <div class="pref-item child" data-node="general" data-leaf="1">General</div>
+      </div>
+      <div class="pref-content" id="prefContent"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

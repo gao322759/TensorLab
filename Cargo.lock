@@ -7195,7 +7195,7 @@ checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
 
 [[package]]
 name = "tl-cli"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "serde_json",
@@ -7207,7 +7207,7 @@ dependencies = [
 
 [[package]]
 name = "tl-commands"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "serde_json",
@@ -7219,7 +7219,7 @@ dependencies = [
 
 [[package]]
 name = "tl-desktop"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -7232,7 +7232,7 @@ dependencies = [
 
 [[package]]
 name = "tl-interpreter"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "tl-kernel",
@@ -7241,7 +7241,7 @@ dependencies = [
 
 [[package]]
 name = "tl-jit"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "serde",
  "tl-kernel",
@@ -7250,11 +7250,14 @@ dependencies = [
 
 [[package]]
 name = "tl-kernel"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "futures",
  "hdf5-metno",
+ "inventory 0.1.11",
+ "runmat-async",
+ "runmat-builtins",
  "runmat-core",
  "runmat-runtime",
  "runmat-value",
@@ -7264,11 +7267,11 @@ dependencies = [
 
 [[package]]
 name = "tl-linalg"
-version = "0.2.1"
+version = "0.3.0"
 
 [[package]]
 name = "tl-mcp-server"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "serde",
@@ -7279,8 +7282,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "tl-mesh"
+version = "0.3.0"
+
+[[package]]
 name = "tl-mex"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "libloading 0.8.9",
@@ -7288,7 +7295,7 @@ dependencies = [
 
 [[package]]
 name = "tl-parser"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "serde",
  "tl-types",
@@ -7296,7 +7303,7 @@ dependencies = [
 
 [[package]]
 name = "tl-toolbox"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "inventory 0.3.25",
  "serde",
@@ -7307,7 +7314,7 @@ dependencies = [
 
 [[package]]
 name = "tl-types"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "runmat-value",
  "serde",
@@ -8931,7 +8938,7 @@ checksum = "e450f9b2ed1dff33c94c12589a87338689467b9c4f5d8a5710bd09a847d2c8a7"
 
 [[package]]
 name = "xtask"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "toml 0.8.23",
 ]

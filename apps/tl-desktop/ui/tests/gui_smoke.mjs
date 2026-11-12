@@ -125,11 +125,18 @@ await ssend("Runtime.enable");
 // Tauri shim: record every invoke and return canned RunReports.
 const shim = `
 window.__TL_CALLS__ = [];
+window.__TL_LISTENERS__ = {};
+window.__TL_PAUSED__ = null;
 window.__TAURI_INTERNALS__ = {
   invoke: async (cmd, args) => {
     window.__TL_CALLS__.push({ cmd, args });
     if (cmd === "app_info") {
       return { version: "0.2.1", kernel: "RunMat 0.6.2", compat: "MATLAB R2026a", license: "MIT" };
+    }
+    if (cmd === "debug_state") return window.__TL_PAUSED__;
+    if (cmd === "plugin:event|listen") {
+      window.__TL_LISTENERS__[args.event] = window["_" + args.handler];
+      return null;
     }
     if (cmd !== "run") return null;
     const src = (args && args.source) || "";
@@ -170,6 +177,15 @@ window.__TAURI_INTERNALS__ = {
     return { events: [{ kind: "output", text: "mock output\\n" }], resultText: "ans = 42", error: null, warnings: [], variables: vars, figures: [], durationMs: 1.0, usedJit: false };
   },
 };
+window.__TAURI_INTERNALS__.transformCallback = (cb) => {
+  const id = "cb" + Math.random().toString(36).slice(2);
+  window["_" + id] = cb;
+  return id;
+};
+window.__TL_EMIT__ = (event, payload) => {
+  const cb = window.__TL_LISTENERS__[event];
+  if (cb) cb({ event, payload });
+};
 `;
 
 await ssend("Page.addScriptToEvaluateOnNewDocument", { source: shim });
@@ -187,7 +203,12 @@ async function evalJs(expression) {
     returnByValue: true,
     awaitPromise: true,
   });
-  if (exceptionDetails) throw new Error(exceptionDetails.text || "JS exception");
+  if (exceptionDetails) {
+    const detail = exceptionDetails.exception && exceptionDetails.exception.description
+      ? `: ${exceptionDetails.exception.description.split("\n")[0]}`
+      : "";
+    throw new Error((exceptionDetails.text || "JS exception") + detail);
+  }
   return result.value;
 }
 
@@ -393,6 +414,171 @@ await check("clearConsole event empties the console", async () => {
     return true;
   })()`);
   await waitFor("document.getElementById('console').children.length === 0", "console cleared");
+});
+
+// MATLAB R2026a-paradigm shell: 4 ribbon tabs, light default, theme + docking.
+await check("ribbon exposes four tabs with HOME active and light theme", async () => {
+  const tabs = await evalJs("Array.from(document.querySelectorAll('#ribbonTabs .rtab')).map(t => t.textContent)");
+  if (tabs.join(",") !== "HOME,EDITOR,VIEW,HELP") throw new Error(`tabs: ${tabs.join(",")}`);
+  const active = await evalJs("document.querySelector('#ribbonTabs .rtab.active').textContent");
+  if (active !== "HOME") throw new Error(`active tab: ${active}`);
+  const theme = await evalJs("document.documentElement.getAttribute('data-theme')");
+  if (theme !== "light") throw new Error(`default theme: ${theme}`);
+  const groups = await evalJs("document.querySelectorAll('#ribbonBody .rgroup').length");
+  if (groups !== 4) throw new Error(`HOME groups: ${groups}`);
+});
+
+await check("ribbon tab switch re-renders groups and keeps Run wired", async () => {
+  await evalJs(`Array.from(document.querySelectorAll('#ribbonTabs .rtab')).find(t => t.textContent === 'VIEW').click()`);
+  const labels = await evalJs("Array.from(document.querySelectorAll('#ribbonBody .rgroup-label')).map(n => n.textContent)");
+  if (labels.join(",") !== "PANELS,APPEARANCE,LAYOUT") throw new Error(`VIEW groups: ${labels.join(",")}`);
+  await evalJs("document.querySelector('#ribbonBody [data-act=themeDark]').click()");
+  if (await evalJs("document.documentElement.getAttribute('data-theme')") !== "dark") throw new Error("dark theme not applied");
+  await evalJs(`Array.from(document.querySelectorAll('#ribbonTabs .rtab')).find(t => t.textContent === 'HOME').click()`);
+  await evalJs("document.querySelector('#ribbonBody [data-act=themeLight]').click()");
+  if (await evalJs("document.documentElement.getAttribute('data-theme')") !== "light") throw new Error("light theme not restored");
+  const run = await evalJs("document.getElementById('run-btn') !== null && !document.getElementById('run-btn').disabled");
+  if (!run) throw new Error("Run button is missing or disabled after tab switch");
+});
+
+await check("preferences dialog applies the theme and lists settings pages", async () => {
+  await evalJs("document.dispatchEvent(new KeyboardEvent('keydown', { key: ',', ctrlKey: true, bubbles: true }))");
+  await waitFor("document.getElementById('pref-overlay').hidden === false", "preferences open");
+  const pages = await evalJs("Array.from(document.querySelectorAll('#pref-nav button')).map(b => b.textContent)");
+  if (pages.join(",") !== "Appearance,Editor,Workspace,About TensorLab") throw new Error(`pages: ${pages.join(",")}`);
+  await evalJs(`(() => {
+    const r = document.querySelector('input[name=pref-theme][value=dark]');
+    r.checked = true;
+    r.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`);
+  if (await evalJs("document.documentElement.getAttribute('data-theme')") !== "dark") throw new Error("preferences did not switch theme");
+  await evalJs(`(() => {
+    const r = document.querySelector('input[name=pref-theme][value=light]');
+    r.checked = true;
+    r.dispatchEvent(new Event('change', { bubbles: true }));
+    return true;
+  })()`);
+  await evalJs("document.getElementById('pref-done').click()");
+  await waitFor("document.getElementById('pref-overlay').hidden === true", "preferences closed");
+});
+
+await check("panel collapse and layout reset work", async () => {
+  await evalJs("document.querySelector('#panelVars .panel-head').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))");
+  const collapsed = await evalJs("document.getElementById('panelVars').classList.contains('collapsed')");
+  if (!collapsed) throw new Error("double-click did not collapse the Workspace panel");
+  await evalJs(`document.dispatchEvent(new KeyboardEvent('keydown', { key: ',', ctrlKey: true, bubbles: true }))`);
+  await waitFor("document.getElementById('pref-overlay').hidden === false", "preferences open");
+  await evalJs(`Array.from(document.querySelectorAll('#pref-nav button')).find(b => b.textContent === 'Workspace').click()`);
+  await evalJs("document.getElementById('pref-reset-layout').click()");
+  const expanded = await evalJs("!document.getElementById('panelVars').classList.contains('collapsed')");
+  if (!expanded) throw new Error("reset layout did not expand the Workspace panel");
+  const order = await evalJs("Array.from(document.getElementById('colCenter').children).map(n => n.id).join(',')");
+  if (order !== "panelEditor,hsplit,panelConsole") throw new Error(`center order: ${order}`);
+  await evalJs("document.getElementById('pref-done').click()");
+});
+
+// ---- debugger: breakpoints / pause event / resume / db* commands ----
+await check("gutter click toggles a breakpoint and syncs to the backend", async () => {
+  await evalJs(`(() => {
+    const src = document.getElementById('src');
+    if (src.value.split("\\n").length < 4) {
+      src.value = "a = 1;\\nb = 2;\\nc = 3;\\nd = a + b + c;";
+      src.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    return true;
+  })()`);
+  await evalJs(`(() => {
+    const d = document.getElementById('gutter-inner').children[2];
+    const r = d.getBoundingClientRect();
+    document.getElementById('gutter').dispatchEvent(new MouseEvent('click', { clientX: r.left + 5, clientY: r.top + 10, bubbles: true }));
+    return true;
+  })()`);
+  const marked = await evalJs("document.getElementById('gutter-inner').children[2].classList.contains('bp')");
+  if (!marked) throw new Error("gutter line 3 has no breakpoint dot");
+  const last = await evalJs(`(() => {
+    const calls = window.__TL_CALLS__.filter(c => c.cmd === 'debug_set_breakpoints');
+    return JSON.stringify(calls[calls.length - 1].args.lines);
+  })()`);
+  if (last !== "[3]") throw new Error(`debug_set_breakpoints payload: ${last}`);
+  await evalJs(`(() => {
+    const d = document.getElementById('gutter-inner').children[2];
+    const r = d.getBoundingClientRect();
+    document.getElementById('gutter').dispatchEvent(new MouseEvent('click', { clientX: r.left + 5, clientY: r.top + 10, bubbles: true }));
+    return true;
+  })()`);
+  const removed = await evalJs("!document.getElementById('gutter-inner').children[2].classList.contains('bp')");
+  if (!removed) throw new Error("second gutter click did not clear the breakpoint");
+});
+
+await check("debug-paused event highlights the line and enables debug controls", async () => {
+  await evalJs("window.__TL_EMIT__('debug-paused', 3)");
+  const hl = await evalJs(`(() => {
+    const el = document.getElementById('dbg-line-hl');
+    return el.style.display !== 'none' && el.style.top !== '';
+  })()`);
+  if (!hl) throw new Error("debug line highlight not shown");
+  const cur = await evalJs("document.getElementById('gutter-inner').children[2].classList.contains('cur')");
+  if (!cur) throw new Error("gutter has no current-line arrow");
+  const btns = await evalJs(`(() => {
+    const c = document.getElementById('continue-btn'), s = document.getElementById('step-btn'), r = document.getElementById('run-btn');
+    return !c.disabled && !s.disabled && r.disabled;
+  })()`);
+  if (!btns) throw new Error("pause state did not enable Continue/Step and disable Run");
+  const status = await evalJs("document.getElementById('status').textContent");
+  if (!status.includes("paused")) throw new Error(`status: ${status}`);
+});
+
+// 调试 UI 的兜底通道：轮询 debug_state 必须能发现暂停（事件通道失败时不至于"死机"），
+// Stop 必须无条件走后端 stop（后端负责在暂停时转 dbquit）。
+await check("debug state polling surfaces a pause and Stop recovers it", async () => {
+  await evalJs("setDebugLine(null); setPausedUi(false); window.__TL_PAUSED__ = null;");
+  await evalJs("startDebugPoll()");
+  await evalJs("window.__TL_PAUSED__ = 4");
+  await waitFor("document.getElementById('dbg-line-hl').style.display !== 'none'", "poll detects pause");
+  await waitFor("!document.getElementById('step-btn').disabled", "poll enables Step");
+  const cur = await evalJs("document.getElementById('gutter-inner').children[3].classList.contains('cur')");
+  if (!cur) throw new Error("poll did not mark the current line in the gutter");
+  await evalJs("document.getElementById('step-btn').click()");
+  await waitFor(
+    "(() => { const c = window.__TL_CALLS__.filter(x => x.cmd === 'debug_resume'); return c.length > 0 && c[c.length - 1].args.mode === 'step'; })()",
+    "step resume call",
+  );
+  await evalJs("window.__TL_PAUSED__ = null; stop()");
+  await waitFor(`window.__TL_CALLS__.some(c => c.cmd === 'stop')`, "stop command sent");
+  await waitFor("document.getElementById('dbg-line-hl').style.display === 'none'", "highlight cleared on stop");
+  const btns = await evalJs(`(() => {
+    const c = document.getElementById('continue-btn'), s = document.getElementById('step-btn');
+    return c.disabled && s.disabled;
+  })()`);
+  if (!btns) throw new Error("Continue/Step still enabled after stop");
+  await evalJs("stopDebugPoll()");
+});
+
+await check("console db commands manage breakpoints without touching the engine", async () => {
+  await evalJs(`(() => {
+    const el = document.getElementById('console-input');
+    el.value = 'dbstop 2';
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    return true;
+  })()`);
+  await waitFor("document.getElementById('gutter-inner').children[1].classList.contains('bp')", "dbstop 2 marks gutter");
+  await evalJs(`(() => {
+    const el = document.getElementById('console-input');
+    el.value = 'dbcont';
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    return true;
+  })()`);
+  await waitFor(`window.__TL_CALLS__.some(c => c.cmd === 'run' && c.args.source === 'dbcont') === false`, "dbcont must not run as m-code");
+  const warned = await evalJs(`Array.from(document.querySelectorAll('#console .warn')).some(n => n.textContent.includes('not paused'))`);
+  if (!warned) throw new Error("dbcont while not paused should warn");
+  await evalJs(`(() => {
+    const el = document.getElementById('console-input');
+    el.value = 'dbclear all';
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    return true;
+  })()`);
+  await waitFor("!document.getElementById('gutter-inner').children[1].classList.contains('bp')", "dbclear all removes breakpoints");
 });
 
 // ---------------------------------------------------------------- teardown

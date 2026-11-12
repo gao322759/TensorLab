@@ -1,0 +1,436 @@
+{
+  "category": "signal",
+  "functions": [
+    {
+      "name": "convn",
+      "setup": "a=[1 2;3 4]; b=[1 0;0 1];",
+      "compare": [
+        "y"
+      ],
+      "matlab": true,
+      "tol": 1e-12,
+      "normal": [
+        "y=convn(a,b,'full');",
+        "y=convn(a,b,'same');",
+        "y=convn(a,b,'valid');"
+      ],
+      "boundary": [
+        "y=convn(3,2,'full');",
+        "y=convn(ones(3,3),ones(3,3),'full');"
+      ],
+      "abnormal": [
+        "y=convn(a,b,'bad');",
+        "y=convn(a,[],'full');"
+      ]
+    },
+    {
+      "name": "czt",
+      "setup": "x=[1 2 3 4 5 6 7 8];",
+      "compare": [
+        "y"
+      ],
+      "matlab": true,
+      "tol": 1e-10,
+      "normal": [
+        "y=czt(x,8,exp(-2i*pi/8),1);",
+        "y=czt(x,6,exp(-2i*pi/12),0.9);",
+        "y=czt(x,4,exp(-2i*pi/16),0.8);"
+      ],
+      "boundary": [
+        "y=czt(x,1,exp(-2i*pi/8),1);",
+        "y=czt(x,32,exp(-2i*pi/32),1);"
+      ],
+      "abnormal": [
+        "y=czt(x,0,exp(-2i*pi/8),1);",
+        "y=czt(x,8,0,1);"
+      ]
+    },
+    {
+      "name": "dct",
+      "setup": "x=[1 2 3 4 5 6 7 8];",
+      "compare": [
+        "y"
+      ],
+      "matlab": true,
+      "tol": 1e-10,
+      "normal": [
+        "y=dct(x);",
+        "y=dct(x,4);",
+        "y=dct(x,16);"
+      ],
+      "boundary": [
+        "y=dct(x,1);",
+        "y=dct(x,32);"
+      ],
+      "abnormal": [
+        "y=dct(x,0);",
+        "y=dct(x,-2);"
+      ]
+    },
+    {
+      "name": "decimate",
+      "setup": "x=1:64;",
+      "compare": [
+        "y"
+      ],
+      "matlab": true,
+      "tol": 0.000001,
+      "normal": [
+        "y=decimate(x,2);",
+        "y=decimate(x,4);",
+        "y=decimate(x,8);"
+      ],
+      "boundary": [
+        "y=decimate(x,2);",
+        "y=decimate(x,16);"
+      ],
+      "abnormal": [
+        "y=decimate(x,0);",
+        "y=decimate(x,-2);"
+      ],
+      "note": "R<=8 与 MATLAB 逐位一致；MATLAB 在 R>10 时会改用更低阶的抗混叠滤波器（实测 R=16 为 7 阶），本项目固定 8 阶"
+    },
+    {
+      "name": "findpeaks",
+      "setup": "x=[0 1 0 2 0 3 0];",
+      "compare": [
+        "pks",
+        "locs"
+      ],
+      "matlab": true,
+      "tol": 1e-12,
+      "normal": [
+        "[pks,locs]=findpeaks(x);",
+        "[pks,locs]=findpeaks([0 1 2 1 0 3 0]);",
+        "[pks,locs]=findpeaks([3 2 1 2 3]);"
+      ],
+      "boundary": [
+        "[pks,locs]=findpeaks([0 1 0]);",
+        "[pks,locs]=findpeaks([5]);"
+      ],
+      "abnormal": [
+        "[pks,locs]=findpeaks([]);",
+        "[pks,locs]=findpeaks([1 NaN 2]);"
+      ]
+    },
+    {
+      "name": "fir2",
+      "setup": "f=[0 0.4 0.5 1]; m=[1 1 0 0];",
+      "compare": [
+        "b"
+      ],
+      "matlab": true,
+      "tol": 0.001,
+      "normal": [
+        "b=fir2(8,f,m);",
+        "b=fir2(16,f,m);",
+        "b=fir2(32,f,m);"
+      ],
+      "boundary": [
+        "b=fir2(2,f,m);",
+        "b=fir2(64,f,m);"
+      ],
+      "abnormal": [
+        "b=fir2(0,f,m);",
+        "b=fir2(8,[0 0.5 1],[1 0]);"
+      ],
+      "note": "MATLAB fir2 额外做频率栅格平滑，系数差约 1e-4；本项目保留频率采样法，tol 取 1e-3"
+    },
+    {
+      "name": "freqs",
+      "setup": "b=[1 2]; a=[1 2 1]; w=logspace(-1,1,8);",
+      "compare": [
+        "h"
+      ],
+      "matlab": true,
+      "tol": 1e-10,
+      "normal": [
+        "h=freqs(b,a,w);",
+        "h=freqs(b,a,0);",
+        "h=freqs(b,a,10);"
+      ],
+      "boundary": [
+        "h=freqs(b,a,0);",
+        "h=freqs(b,a,100);"
+      ],
+      "abnormal": [
+        "h=freqs(b,[1 0 0],w);",
+        "h=freqs(b,a,-1);"
+      ]
+    },
+    {
+      "name": "goertzel",
+      "setup": "x=1:16;",
+      "compare": [
+        "y"
+      ],
+      "matlab": true,
+      "tol": 1e-10,
+      "normal": [
+        "y=goertzel(x,1:4);",
+        "y=goertzel(x,2:2:8);",
+        "y=goertzel(x,[1 5 9]);"
+      ],
+      "boundary": [
+        "y=goertzel(x,1);",
+        "y=goertzel(x,16);"
+      ],
+      "abnormal": [
+        "y=goertzel(x,0);",
+        "y=goertzel(x,17);"
+      ]
+    },
+    {
+      "name": "idct",
+      "setup": "y=[10 -2 0 1 0 0 0 0];",
+      "compare": [
+        "x"
+      ],
+      "matlab": true,
+      "tol": 1e-10,
+      "normal": [
+        "x=idct(y);",
+        "x=idct(y,4);",
+        "x=idct(y,16);"
+      ],
+      "boundary": [
+        "x=idct(y,1);",
+        "x=idct(y,32);"
+      ],
+      "abnormal": [
+        "x=idct(y,0);",
+        "x=idct(y,-2);"
+      ]
+    },
+    {
+      "name": "istft",
+      "setup": "x=1:64; [S,F,T]=stft(x,8,8,4,8);",
+      "compare": [
+        "y"
+      ],
+      "matlab": false,
+      "note": "本项目 istft 使用位置参数 (S,window,nfft,hop,fs)；MATLAB R2023b 只接受 (s,fs) 或名称-值参数，无法直接对比",
+      "tol": 1e-8,
+      "normal": [
+        "y=istft(S,8,8,4,8);",
+        "y=istft(S,8,8,2,8);",
+        "y=istft(S,8,8,8,8);"
+      ],
+      "boundary": [
+        "y=istft(S,8,2,0,2);",
+        "y=istft(S,8,8,1,8);"
+      ],
+      "abnormal": [
+        "y=istft(S,8,0,0,8);",
+        "y=istft(S,8,8,4,7);"
+      ]
+    },
+    {
+      "name": "kaiser",
+      "setup": "",
+      "compare": [
+        "w"
+      ],
+      "matlab": true,
+      "tol": 1e-12,
+      "normal": [
+        "w=kaiser(8,0.5);",
+        "w=kaiser(16,2);",
+        "w=kaiser(32,5);"
+      ],
+      "boundary": [
+        "w=kaiser(1,0.5);",
+        "w=kaiser(256,20);"
+      ],
+      "abnormal": [
+        "w=kaiser(0,0.5);",
+        "w=kaiser(-5,0.5);"
+      ]
+    },
+    {
+      "name": "kaiserord",
+      "setup": "f=[0 0.4 0.5 1]; a=[1 0]; dev=[0.01 0.001];",
+      "compare": [
+        "n",
+        "Wn",
+        "beta"
+      ],
+      "matlab": true,
+      "tol": 1e-10,
+      "normal": [
+        "[n,Wn,beta,ftype]=kaiserord(f,a,dev,2);",
+        "[n,Wn,beta,ftype]=kaiserord(f,a,dev,4);",
+        "[n,Wn,beta,ftype]=kaiserord([0 0.2 0.3 0.6 0.7 1],[1 0 1],[0.01 0.001 0.01],2);"
+      ],
+      "boundary": [
+        "[n,Wn,beta,ftype]=kaiserord([0 0.4 0.6 1],a,[0.1 0.1],2);",
+        "[n,Wn,beta,ftype]=kaiserord(f,a,[1e-6 1e-6],2);"
+      ],
+      "abnormal": [
+        "[n,Wn,beta,ftype]=kaiserord([0 0.5 1],a,dev,2);",
+        "[n,Wn,beta,ftype]=kaiserord(f,a,[-0.1 0.1],2);"
+      ]
+    },
+    {
+      "name": "pspectrum",
+      "setup": "x=sin(2*pi*0.1*(0:63));",
+      "compare": [
+        "p",
+        "f"
+      ],
+      "matlab": false,
+      "note": "本项目 pspectrum 是「矩形窗 + 全长 FFT」子集；MATLAB 默认按频率分辨率自适应分段加窗，长度与数值不可直接对比",
+      "tol": 1e-10,
+      "normal": [
+        "[p,f]=pspectrum(x,8);",
+        "[p,f]=pspectrum(x,1);",
+        "[p,f]=pspectrum([1 2 3 4 5 6 7],2);"
+      ],
+      "boundary": [
+        "[p,f]=pspectrum([1 0],1);",
+        "[p,f]=pspectrum(ones(1,1024),1);"
+      ],
+      "abnormal": [
+        "[p,f]=pspectrum([],1);",
+        "[p,f]=pspectrum(x,0);"
+      ]
+    },
+    {
+      "name": "rectwin",
+      "setup": "",
+      "compare": [
+        "w"
+      ],
+      "matlab": true,
+      "tol": 1e-12,
+      "normal": [
+        "w=rectwin(8);",
+        "w=rectwin(16);",
+        "w=rectwin(32);"
+      ],
+      "boundary": [
+        "w=rectwin(1);",
+        "w=rectwin(256);"
+      ],
+      "abnormal": [
+        "w=rectwin(0);",
+        "w=rectwin(-5);"
+      ]
+    },
+    {
+      "name": "stft",
+      "setup": "x=1:64;",
+      "compare": [
+        "S",
+        "F",
+        "T"
+      ],
+      "matlab": false,
+      "note": "本项目 stft 使用位置参数 (x,window,nfft,hop,fs)；MATLAB R2023b 只接受 (x,fs) 或名称-值参数，无法直接对比",
+      "tol": 1e-8,
+      "normal": [
+        "[S,F,T]=stft(x,8);",
+        "[S,F,T]=stft(x,8,8,4,8);",
+        "[S,F,T]=stft(x,8,16,8,16);"
+      ],
+      "boundary": [
+        "[S,F,T]=stft(x,8,2,0,2);",
+        "[S,F,T]=stft(x,8,16,12,16);"
+      ],
+      "abnormal": [
+        "[S,F,T]=stft(x,8,0,0,8);",
+        "[S,F,T]=stft(x,8,8,8,8);"
+      ]
+    },
+    {
+      "name": "tukeywin",
+      "setup": "",
+      "compare": [
+        "w"
+      ],
+      "matlab": true,
+      "tol": 1e-12,
+      "normal": [
+        "w=tukeywin(16,0.5);",
+        "w=tukeywin(32,0.25);",
+        "w=tukeywin(8,0.75);"
+      ],
+      "boundary": [
+        "w=tukeywin(16,0);",
+        "w=tukeywin(16,1);"
+      ],
+      "abnormal": [
+        "w=tukeywin(0,0.5);",
+        "w=tukeywin(16,-0.5);"
+      ]
+    },
+    {
+      "name": "upfirdn",
+      "setup": "x=1:10; h=[1 2 1];",
+      "compare": [
+        "y"
+      ],
+      "matlab": true,
+      "tol": 1e-12,
+      "normal": [
+        "y=upfirdn(x,h,2,1);",
+        "y=upfirdn(x,h,1,2);",
+        "y=upfirdn(x,h,2,3);"
+      ],
+      "boundary": [
+        "y=upfirdn(x,h,1,1);",
+        "y=upfirdn(x,h,4,1);"
+      ],
+      "abnormal": [
+        "y=upfirdn(x,h,0,1);",
+        "y=upfirdn(x,h,2,-1);"
+      ]
+    },
+    {
+      "name": "xcorr",
+      "setup": "x=[1 2 3 4 5 6 7 8]; y=[2 3 4 5 6 7 8 9];",
+      "compare": [
+        "r"
+      ],
+      "matlab": true,
+      "note": "本项目只返回 R（无 LAGS）；两输入长度不同时结果长度与 MATLAB 的 2*max(M,N)-1 不同",
+      "tol": 1e-12,
+      "normal": [
+        "r=xcorr(x);",
+        "r=xcorr(x,y);",
+        "r=xcorr(x,y(1:6));"
+      ],
+      "boundary": [
+        "r=xcorr(1);",
+        "r=xcorr(1:64);"
+      ],
+      "abnormal": [
+        "r=xcorr([]);",
+        "r=xcorr(ones(2,2));"
+      ]
+    },
+    {
+      "name": "xcov",
+      "setup": "x=[1 2 3 4 5 6 7 8]; y=[2 3 4 5 6 7 8 9];",
+      "compare": [
+        "r"
+      ],
+      "matlab": true,
+      "note": "本项目只返回 R（无 LAGS）；两输入长度不同时结果长度与 MATLAB 的 2*max(M,N)-1 不同",
+      "tol": 1e-12,
+      "normal": [
+        "r=xcov(x);",
+        "r=xcov(x,y);",
+        "r=xcov(x,y(1:6));"
+      ],
+      "boundary": [
+        "r=xcov(1);",
+        "r=xcov(1:64);"
+      ],
+      "abnormal": [
+        "r=xcov([]);",
+        "r=xcov(ones(2,2));"
+      ]
+    }
+  ]
+}

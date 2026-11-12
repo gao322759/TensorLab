@@ -9,6 +9,10 @@ function y = dct(x, n)
         x
         n = []
     end
+    rowIn = 0;
+    if size(x, 1) == 1 && numel(x) > 1
+        rowIn = 1;
+    end
     x = reshape(x, numel(x), 1);
     if ~isempty(n)
         if n < numel(x)
@@ -16,6 +20,8 @@ function y = dct(x, n)
         elseif n > numel(x)
             x = [x; zeros(n - numel(x), 1)];
         end
+        % 重新确保列向量（索引列向量可能返回行向量）
+        x = reshape(x, numel(x), 1);
     end
     N = numel(x);
     k = (0:N-1)';
@@ -24,4 +30,7 @@ function y = dct(x, n)
     w = sqrt(2 / N) * ones(N, 1);
     w(1) = sqrt(1 / N);
     y = w .* (M * x);
+    if rowIn
+        y = reshape(y, 1, numel(y));
+    end
 end

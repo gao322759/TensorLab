@@ -44,7 +44,7 @@ fn desktop_ui_smoke_test_passes() {
         "GUI smoke test failed\nstdout:\n{stdout}\nstderr:\n{stderr}"
     );
     assert!(
-        stdout.contains("11 passed, 0 failed"),
+        stdout.contains("19 passed, 0 failed"),
         "unexpected GUI test summary:\n{stdout}"
     );
 }

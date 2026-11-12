@@ -3,7 +3,7 @@
 **MATLAB-compatible, Rust-powered** — 一个用 Rust 构建的 m-script 科学计算平台。
 
 TensorLab 提供 m-script 解释器、命令行工具、Tauri 桌面应用与 MCP 服务器（面向 AI Agent），
-四个入口共享同一个计算内核。内核采用 [RunMat 0.6.2](https://github.com/runmat-org/runmat)。
+四个入口共享同一个计算内核。内核采用 [RunMat](https://github.com/runmat-org/runmat)。
 
 ![Rust](https://img.shields.io/badge/Rust-2021-orange)
 ![Tauri](https://img.shields.io/badge/Tauri-2-blue)
@@ -16,6 +16,7 @@ TensorLab 提供 m-script 解释器、命令行工具、Tauri 桌面应用与 MC
 - **1000+ 内置函数**（由 RunMat 内核提供）：线性代数、信号处理、统计、绘图等
 - **5 个 MVP 工具箱**（纯 m-script，锚定 MATLAB R2026a）：Signal / Image / Optimization / Statistics & ML / Control
 - **桌面端**：Tauri 2 + 自研编辑器（overlay 高亮）+ 变量面板 + 控制台 REPL + 自研 SVG 图窗渲染器（离线、无 CDN）
+  + **脚本调试器**（断点 / 单步 / 继续 / 停止，对齐 MATLAB `dbstop`/`dbstep`/`dbcont`/`dbquit`）
 - **MCP-first**：`tl-mcp-server` 让 Claude / Cursor 等 AI Agent 直接运行 m 代码并取回图窗数据
 - **MEX 加载桥**：`mex load <path>` 真实加载动态库并探测 `mexFunction` 入口
 - **Everything is a command**：命令注册表让 GUI / CLI / MCP 共享同一语义
@@ -26,8 +27,8 @@ TensorLab 提供 m-script 解释器、命令行工具、Tauri 桌面应用与 MC
 
 从 [Releases](../../releases/latest) 下载：
 
-- `tensorlab-0.2.1-windows-x64.msi` — 安装包
-- `tensorlab-0.2.1-windows-x64.zip` — 便携包（解压后直接运行）
+- `tensorlab-0.3.0-windows-x64.msi` — 安装包
+- `tensorlab-0.3.0-windows-x64.zip` — 便携包（解压后直接运行）
 
 ### 从源码构建
 
@@ -136,7 +137,7 @@ powershell -ExecutionPolicy Bypass -File packaging\build-windows.ps1 -Bundle
 |------|------|
 | 文档站（教程） | [docs/site/index.html](docs/site/index.html) |
 | 文档索引 | [docs/README.md](docs/README.md) |
-| 路线图 | [ROADMAP.md](ROADMAP.md) · [docs/roadmap.md](docs/roadmap.md) |
+| 路线图 | [docs/roadmap.md](docs/roadmap.md) |
 | 架构 / 决策 | [docs/architecture.md](docs/architecture.md) · [docs/decisions.md](docs/decisions.md) |
 | 开发 / 测试 | [docs/development.md](docs/development.md) · [docs/testing.md](docs/testing.md) |
 | CLI / MCP / 桌面端 | [docs/cli.md](docs/cli.md) · [docs/mcp.md](docs/mcp.md) · [docs/ui-desktop.md](docs/ui-desktop.md) |

@@ -12,6 +12,9 @@ function [L, P] = kalman(sys, Q, R)
         Q
         R
     end
+    if ~isscalar(R) || R <= 0
+        error('kalman:invalidR', 'R must be a positive scalar.');
+    end
     A = sys.A;
     B = sys.B;
     C = sys.C;
@@ -31,6 +34,9 @@ function [L, P] = kalman(sys, Q, R)
             q = Q(1, 1);
         end
         coef = c * c * Ri;
+        if coef == 0
+            error('kalman:unobservable', 'the system is not observable');
+        end
         P = (a + sqrt(a * a + coef * q)) / coef;
         L = P * c / (R + c * P * c);
         return

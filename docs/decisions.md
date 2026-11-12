@@ -236,13 +236,14 @@ path = "src/main.rs"
    `tl_interpreter::run_file_ok`、MCP `run` 工具。
 3. classdef 的使用边界：**只允许用于返回 MATLAB 兼容的模型对象**（如后续 `zpk`/`pid`），
    不推广为用户 OOP 能力，也不改变 AGENTS §一「不做完整 OOP」的产品边界。
-4. 桌面端 Run 执行的是编辑器缓冲区（无文件路径），继续走 Text；classdef 需在
-   CLI/MCP 中运行磁盘脚本。
+4. 桌面端 Run 执行编辑器缓冲区时，若当前文件已保存（有磁盘路径），经 `Engine::run_at`
+   以该路径作为 Text 源名提交：内核仍执行缓冲区文本，但会按路径发现同目录 classdef；
+   未保存缓冲区（无路径）回退 `Engine::run` 的 Text 请求。
 
 **影响**：
 - ✅ `tensorlab run script.m`、MCP `run`、demo 验收均可加载同目录 classdef
 - ✅ 不改变 `Engine::run` 的 REPL/单行语义，IPC 载荷（RunReport）不变
 - ⚠️ Path 请求的 workspace delta 使用 `SourceBinding` 键；宿主仍通过
   `workspace_snapshot()` 生成变量面板，因此不受影响
-- ⚠️ 桌面端尚未把当前文件路径传入 IPC；若需要编辑器内 classdef，后续给 `run`
-  命令增加可选 `path` 参数
+- ⚠️ 桌面端 `run` IPC 已增加可选 `path`（UI 传 `currentPath`）：已保存脚本的编辑器缓冲区
+  可用同目录 classdef；未保存缓冲区仍走 Text。REPL/MCP `eval` 无路径，classdef 仍不可用

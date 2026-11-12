@@ -42,7 +42,8 @@ cp target/release/tensorlab "$OUT"/
 cp target/release/tl-mcp-server "$OUT"/
 cp target/release/tensorlab-desktop "$OUT"/
 cp -R toolbox demos "$OUT"/
-cp README.md CHANGELOG.md ROADMAP.md "$OUT"/
+cp README.md CHANGELOG.md "$OUT"/
+cp docs/roadmap.md "$OUT"/ROADMAP.md
 cp docs/attribution.md "$OUT"/ATTRIBUTION.md
 tar -czf "${OUT}.tar.gz" -C dist "$(basename "$OUT")"
 echo "portable package -> ${OUT}.tar.gz"

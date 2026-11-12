@@ -38,19 +38,37 @@ fn is_app(crate_name: &str) -> bool {
 }
 
 fn find_workspace_manifests(root: &Path) -> Vec<PathBuf> {
-    let mut out = Vec::new();
-    for dir in ["crates", "apps"] {
-        let base = root.join(dir);
-        if let Ok(entries) = fs::read_dir(&base) {
-            for e in entries.flatten() {
-                let m = e.path().join("Cargo.toml");
-                if m.exists() {
-                    out.push(m);
-                }
+    fn walk(dir: &Path, depth: usize, out: &mut Vec<PathBuf>) {
+        // 桌面 crate 位于 apps/tl-desktop/src-tauri，需要递归；限制深度避免扫进 target。
+        if depth > 4 {
+            return;
+        }
+        let Ok(entries) = fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
             }
+            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if name.starts_with('.') || matches!(name, "target" | "node_modules" | "icons") {
+                continue;
+            }
+            let manifest = path.join("Cargo.toml");
+            if manifest.is_file() {
+                out.push(manifest);
+            }
+            walk(&path, depth + 1, out);
         }
     }
+
+    let mut out = Vec::new();
+    for dir in ["crates", "apps"] {
+        walk(&root.join(dir), 0, &mut out);
+    }
     out.sort();
+    out.dedup();
     out
 }
 
@@ -64,8 +82,8 @@ fn main() {
     let mut failures: Vec<String> = Vec::new();
     let mut checked = 0usize;
 
-    // Discover workspace crates: name -> (manifest path, is app dir)
-    let mut discovered: BTreeMap<String, bool> = BTreeMap::new(); // name -> is_app
+    // Discover workspace crates: name -> (is_app, manifest path)
+    let mut discovered: BTreeMap<String, (bool, PathBuf)> = BTreeMap::new();
     for manifest in find_workspace_manifests(&root) {
         let text = fs::read_to_string(&manifest).expect("read Cargo.toml");
         let value: toml::Value = text.parse().expect("parse Cargo.toml");
@@ -74,21 +92,15 @@ fn main() {
             failures.push(format!("{}: missing [package].name", manifest.display()));
             continue;
         };
-        let is_app_dir = manifest
-            .parent()
-            .and_then(|p| p.parent())
-            .map(|p| p.file_name().map(|n| n == "apps").unwrap_or(false))
-            .unwrap_or(false);
-        discovered.insert(name, is_app_dir);
+        let is_app = manifest.starts_with(root.join("apps"));
+        discovered.insert(name, (is_app, manifest));
     }
 
-    for (name, is_app_dir) in &discovered {
+    for (name, (_is_app_dir, manifest)) in &discovered {
         if name == "xtask" {
             continue;
         }
-        let dir = if *is_app_dir { "apps" } else { "crates" };
-        let manifest = root.join(dir).join(name).join("Cargo.toml");
-        let text = fs::read_to_string(&manifest).expect("read Cargo.toml");
+        let text = fs::read_to_string(manifest).expect("read Cargo.toml");
         let value: toml::Value = text.parse().expect("parse Cargo.toml");
 
         let deps: Vec<String> = ["dependencies", "dev-dependencies"]
@@ -101,7 +113,7 @@ fn main() {
         let self_layer = layer_of(name);
 
         for dep in deps {
-            let Some(&dep_is_app) = discovered.get(&dep) else {
+            let Some((dep_is_app, _)) = discovered.get(&dep) else {
                 // external dependency
                 if self_layer == Some(0) && !L0_ALLOWED_EXTERNAL.contains(&dep.as_str()) {
                     failures.push(format!(
@@ -111,7 +123,7 @@ fn main() {
                 continue;
             };
             // internal dependency
-            if dep_is_app || is_app(&dep) {
+            if *dep_is_app || is_app(&dep) {
                 failures.push(format!("{name}: crate must not depend on app `{dep}`"));
                 continue;
             }
@@ -132,7 +144,14 @@ fn main() {
     }
 
     let status = if failures.is_empty() { "OK" } else { "FAILED" };
-    println!("xtask layers: {status} ({checked} dependency edges checked)");
+    println!(
+        "xtask layers: {status} ({} manifests, {checked} dependency edges checked)",
+        discovered.len()
+    );
+    println!(
+        "  crates: {}",
+        discovered.keys().cloned().collect::<Vec<_>>().join(", ")
+    );
     for f in &failures {
         println!("  x {f}");
     }

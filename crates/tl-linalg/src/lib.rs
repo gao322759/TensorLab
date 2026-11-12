@@ -13,13 +13,17 @@ pub struct Matrix {
 }
 
 impl Matrix {
-    pub fn from_rows(rows: &[&[f64]]) -> Self {
+    /// 从行切片构造矩阵；各行长度必须一致，否则返回 `None`。
+    pub fn from_rows(rows: &[&[f64]]) -> Option<Self> {
         let cols = rows.first().map(|r| r.len()).unwrap_or(0);
-        Matrix {
+        if rows.iter().any(|r| r.len() != cols) {
+            return None;
+        }
+        Some(Matrix {
             rows: rows.len(),
             cols,
             data: rows.iter().flat_map(|r| r.iter().copied()).collect(),
-        }
+        })
     }
 
     pub fn zeros(rows: usize, cols: usize) -> Self {
@@ -48,10 +52,16 @@ impl Matrix {
 }
 
 /// LU 分解（部分主元）。返回 (L\U 合并矩阵, 主元排列, 奇偶符号)。
-/// 若矩阵奇异则返回 None（仅在 U 对角出现 0 时）。
+/// 非方阵或（按矩阵尺度判定的）奇异矩阵返回 None。
 pub fn lu(a: &Matrix) -> Option<(Matrix, Vec<usize>, f64)> {
     let n = a.rows;
-    debug_assert_eq!(n, a.cols, "lu requires a square matrix");
+    if n != a.cols {
+        return None;
+    }
+    let scale = a.data.iter().fold(0.0_f64, |m, v| m.max(v.abs()));
+    // 相对阈值：只把相对于矩阵尺度可忽略的主元视为奇异，
+    // 避免把 diag([1e-13, 1]) 这类整体缩放的良态矩阵误判为奇异。
+    let tol = f64::EPSILON * scale * (n.max(1) as f64);
     let mut m = a.clone();
     let mut perm: Vec<usize> = (0..n).collect();
     let mut sign = 1.0;
@@ -66,8 +76,8 @@ pub fn lu(a: &Matrix) -> Option<(Matrix, Vec<usize>, f64)> {
                 (bi, bv)
             }
         });
-        if m.get(p, k).abs() < 1e-12 {
-            return None; // 奇异
+        if m.get(p, k).abs() <= tol {
+            return None; // 相对于矩阵尺度奇异
         }
         if p != k {
             for c in 0..n {
@@ -97,9 +107,12 @@ pub fn det(a: &Matrix) -> Option<f64> {
     Some(sign * diag)
 }
 
-/// 求解 A x = b（返回解向量）
+/// 求解 A x = b（返回解向量）；非方阵或维度不匹配返回 None。
 pub fn solve(a: &Matrix, b: &[f64]) -> Option<Vec<f64>> {
     let n = a.rows;
+    if n != a.cols || b.len() != n {
+        return None;
+    }
     let (lu_m, perm, _) = lu(a)?;
     let mut pb: Vec<f64> = perm.iter().map(|&i| b[i]).collect();
 
@@ -140,7 +153,7 @@ mod tests {
 
     #[test]
     fn det_matches_known_values() {
-        let a = Matrix::from_rows(&[&[2.0, 1.0], &[1.0, 3.0]]);
+        let a = Matrix::from_rows(&[&[2.0, 1.0], &[1.0, 3.0]]).expect("rectangular rows");
         assert!((det(&a).unwrap() - 5.0).abs() < 1e-10);
         // magic(4) 奇异：精确行列式为 0；浮点 LU 可能给出极小残差值
         let s = Matrix::from_rows(&[
@@ -148,7 +161,8 @@ mod tests {
             &[5.0, 11.0, 10.0, 8.0],
             &[9.0, 7.0, 6.0, 12.0],
             &[4.0, 14.0, 15.0, 1.0],
-        ]);
+        ])
+        .expect("rectangular rows");
         let d = det(&s);
         assert!(
             d.is_none() || d.unwrap().abs() < 1e-9,
@@ -158,7 +172,7 @@ mod tests {
 
     #[test]
     fn solve_and_inv_roundtrip() {
-        let a = Matrix::from_rows(&[&[4.0, 7.0], &[2.0, 6.0]]);
+        let a = Matrix::from_rows(&[&[4.0, 7.0], &[2.0, 6.0]]).expect("rectangular rows");
         let x = solve(&a, &[1.0, 2.0]).unwrap();
         // A * x ≈ b
         let b1 = 4.0 * x[0] + 7.0 * x[1];
@@ -192,7 +206,7 @@ mod tests {
 
     #[test]
     fn from_rows_infers_column_count() {
-        let m = Matrix::from_rows(&[&[1.0, 2.0, 3.0], &[4.0, 5.0, 6.0]]);
+        let m = Matrix::from_rows(&[&[1.0, 2.0, 3.0], &[4.0, 5.0, 6.0]]).expect("rectangular rows");
         assert_eq!((m.rows, m.cols), (2, 3));
         assert_eq!(m.get(1, 2), 6.0);
     }
@@ -200,17 +214,18 @@ mod tests {
     #[test]
     fn det_sign_flips_on_row_swap() {
         // 单位阵行列式 = 1；交换两行后应为 -1
-        let swapped = Matrix::from_rows(&[&[0.0, 1.0], &[1.0, 0.0]]);
+        let swapped = Matrix::from_rows(&[&[0.0, 1.0], &[1.0, 0.0]]).expect("rectangular rows");
         assert!((det(&swapped).unwrap() + 1.0).abs() < 1e-12);
         assert!((det(&Matrix::identity(4)).unwrap() - 1.0).abs() < 1e-12);
         // 对角阵行列式 = 对角积
-        let d = Matrix::from_rows(&[&[3.0, 0.0], &[0.0, 4.0]]);
+        let d = Matrix::from_rows(&[&[3.0, 0.0], &[0.0, 4.0]]).expect("rectangular rows");
         assert!((det(&d).unwrap() - 12.0).abs() < 1e-12);
     }
 
     #[test]
     fn solve_3x3_and_inv_roundtrip() {
-        let a = Matrix::from_rows(&[&[2.0, 1.0, 1.0], &[1.0, 3.0, 2.0], &[1.0, 0.0, 0.0]]);
+        let a = Matrix::from_rows(&[&[2.0, 1.0, 1.0], &[1.0, 3.0, 2.0], &[1.0, 0.0, 0.0]])
+            .expect("rectangular rows");
         let b = vec![4.0, 5.0, 6.0];
         let x = solve(&a, &b).expect("solve");
         for i in 0..3 {
@@ -230,7 +245,7 @@ mod tests {
     #[test]
     fn singular_systems_report_none() {
         // 秩 1 矩阵：第二行是第一行的 2 倍
-        let s = Matrix::from_rows(&[&[1.0, 2.0], &[2.0, 4.0]]);
+        let s = Matrix::from_rows(&[&[1.0, 2.0], &[2.0, 4.0]]).expect("rectangular rows");
         assert!(lu(&s).is_none(), "singular lu must be None");
         assert!(det(&s).is_none(), "singular det must be None");
         assert!(inv(&s).is_none(), "singular inv must be None");
@@ -249,5 +264,25 @@ mod tests {
                 assert!((ai.get(i, j) - expect).abs() < 1e-12);
             }
         }
+    }
+
+    #[test]
+    fn from_rows_rejects_ragged_input() {
+        assert!(Matrix::from_rows(&[&[1.0, 2.0], &[3.0]]).is_none());
+    }
+
+    #[test]
+    fn solve_rejects_dimension_mismatch() {
+        let a = Matrix::from_rows(&[&[1.0, 0.0], &[0.0, 1.0]]).expect("rectangular rows");
+        assert!(solve(&a, &[1.0]).is_none());
+    }
+
+    #[test]
+    fn scaled_diagonal_is_not_singular() {
+        let d = Matrix::from_rows(&[&[1e-13, 0.0], &[0.0, 1.0]]).expect("rectangular rows");
+        let value = det(&d).expect("scaled diagonal must not be singular");
+        assert!((value - 1e-13).abs() < 1e-25, "det = {value}");
+        let x = solve(&d, &[1.0, 1.0]).expect("solve");
+        assert!((x[0] - 1e13).abs() / 1e13 < 1e-12, "x = {x:?}");
     }
 }

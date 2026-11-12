@@ -12,7 +12,7 @@ $ErrorActionPreference = "Stop"
 $env:PATH = "D:\Program Files\Microsoft Visual Studio\2026\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin;$env:USERPROFILE\.cargo\bin;$env:PATH"
 
 $root = Split-Path -Parent $PSScriptRoot
-$version = "0.2.1"
+$version = "0.3.0"
 Push-Location $root
 try {
     Write-Host "== 1/6 fmt =="
@@ -46,7 +46,8 @@ try {
     Copy-Item "target\release\tensorlab-desktop.exe" $out -Force
     Copy-Item "toolbox" (Join-Path $out "toolbox") -Recurse -Force
     Copy-Item "demos" (Join-Path $out "demos") -Recurse -Force
-    Copy-Item "README.md", "CHANGELOG.md", "ROADMAP.md" $out -Force
+    Copy-Item "README.md", "CHANGELOG.md" $out -Force
+    Copy-Item "docs\roadmap.md" (Join-Path $out "ROADMAP.md") -Force
     Copy-Item "docs\attribution.md" (Join-Path $out "ATTRIBUTION.md") -Force
     $zip = "$out.zip"
     if (Test-Path $zip) { Remove-Item $zip -Force }

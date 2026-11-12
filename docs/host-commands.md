@@ -80,7 +80,7 @@ MATLAB builtins: run help('<topic>') in the console, e.g. help('fft').
 
 ```
 >> version
-TensorLab 0.1.0 (kernel: RunMat 0.6.2)
+TensorLab 0.2.1 (kernel: RunMat 0.6.2)
 ans = R2026a
 ```
 

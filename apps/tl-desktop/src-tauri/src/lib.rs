@@ -6,14 +6,16 @@
 //! 图窗由前端用内联 SVG 渲染器绘制 FigureScene（不依赖外部 CDN）。
 
 use std::sync::mpsc::{self, Sender};
-use tauri::State;
-use tl_commands::{repl_line, CommandResult, Engine};
-use tl_types::RunReport;
+use tauri::{Emitter, State};
+use tl_commands::{repl_line_at, repl_line_at_debug, CommandResult, Engine};
+use tl_types::{DiagnosticPayload, RunReport, StreamEntryPayload};
 
 /// 发往引擎线程的请求（reply 用于同步取回结果）
 enum EngineRequest {
     Run {
         source: String,
+        /// 编辑器当前文件的磁盘路径；有值时用同名 Text 请求加载同目录 classdef。
+        path: Option<String>,
         reply: mpsc::Sender<RunReport>,
     },
     Vars {
@@ -33,11 +35,40 @@ fn spawn_engine_thread() -> Sender<EngineRequest> {
         .name("tensorlab-engine".into())
         .stack_size(64 * 1024 * 1024)
         .spawn(move || {
-            let mut engine = Engine::new().expect("engine init");
+            let mut engine = match Engine::new() {
+                Ok(engine) => engine,
+                Err(err) => {
+                    // 初始化失败时保留线程存活，把错误回传给每个请求，避免静默空白。
+                    let message = format!("engine init failed: {err}");
+                    for req in rx {
+                        match req {
+                            EngineRequest::Run { reply, .. } => {
+                                let _ = reply.send(engine_error_report(&message));
+                            }
+                            EngineRequest::Vars { reply } => {
+                                let _ = reply.send(Vec::new());
+                            }
+                            EngineRequest::Stop => {}
+                        }
+                    }
+                    return;
+                }
+            };
             for req in rx {
                 match req {
-                    EngineRequest::Run { source, reply } => {
-                        let report = match repl_line(&mut engine, &source) {
+                    EngineRequest::Run {
+                        source,
+                        path,
+                        reply,
+                    } => {
+                        // 存在断点时走插桩调试路径（run_debugged*），否则零开销普通执行
+                        let debug = tl_commands::debug::has_breakpoints();
+                        let result = if debug {
+                            repl_line_at_debug(&mut engine, &source, path.as_deref())
+                        } else {
+                            repl_line_at(&mut engine, &source, path.as_deref())
+                        };
+                        let report = match result {
                             CommandResult::Report(r) => r,
                             CommandResult::Text(t) => {
                                 let mut r = RunReport::default();
@@ -61,18 +92,72 @@ fn spawn_engine_thread() -> Sender<EngineRequest> {
     tx
 }
 
+/// 执行编辑器缓冲。
+///
+/// 用 `async` + `spawn_blocking`：命令体要阻塞等引擎线程回包，若占用 Tauri 的
+/// 同步命令线程，`debug_resume` / `stop` 可能排不到线程而看起来"死机"。
 #[tauri::command]
-fn run(state: State<AppState>, source: String) -> RunReport {
-    let (reply_tx, reply_rx) = mpsc::channel();
-    let _ = state.tx.send(EngineRequest::Run {
-        source,
-        reply: reply_tx,
-    });
-    reply_rx.recv().unwrap_or_default()
+async fn run(
+    state: State<'_, AppState>,
+    source: String,
+    path: Option<String>,
+) -> Result<RunReport, String> {
+    // 调试暂停期间引擎线程被 __tl_debug__ 钩子占住，新请求会死等 —— 直接拒绝。
+    if tl_commands::debug::is_paused() {
+        return Ok(engine_error_report(
+            "debugger is paused (dbcont/dbstep/dbquit to resume)",
+        ));
+    }
+    let tx = state.tx.clone();
+    let joined = tauri::async_runtime::spawn_blocking(move || {
+        let (reply_tx, reply_rx) = mpsc::channel();
+        let _ = tx.send(EngineRequest::Run {
+            source,
+            path,
+            reply: reply_tx,
+        });
+        match reply_rx.recv() {
+            Ok(report) => report,
+            Err(_) => engine_error_report("engine thread stopped"),
+        }
+    })
+    .await;
+    Ok(joined.unwrap_or_else(|e| engine_error_report(&format!("run task failed: {e}"))))
+}
+
+/// 设置断点（编辑器 gutter 点击后整表同步）。
+#[tauri::command]
+fn debug_set_breakpoints(lines: Vec<u32>) {
+    tl_commands::debug::set_breakpoints(lines);
+}
+
+/// 当前暂停行号（1-based）；未暂停为 `null`。
+///
+/// 前端在运行期间轮询本命令驱动调试 UI —— 不依赖事件通道是否可用，
+/// 保证"引擎已暂停"一定被 UI 感知（否则用户只看到卡住的 Run）。
+#[tauri::command]
+fn debug_state() -> Option<u32> {
+    tl_commands::debug::paused_line()
+}
+
+/// 调试恢复：continue（dbcont）/ step（dbstep）/ stop（dbquit）。
+#[tauri::command]
+fn debug_resume(mode: String) {
+    let mode = match mode.as_str() {
+        "step" => tl_commands::debug::ResumeMode::Step,
+        "stop" => tl_commands::debug::ResumeMode::Stop,
+        _ => tl_commands::debug::ResumeMode::Run,
+    };
+    tl_commands::debug::resume(mode);
 }
 
 #[tauri::command]
 fn stop(state: State<AppState>) {
+    // 调试暂停时引擎线程被调试钩子占住，Stop 必须走 dbquit 通道才生效
+    if tl_commands::debug::is_paused() {
+        tl_commands::debug::resume(tl_commands::debug::ResumeMode::Stop);
+        return;
+    }
     let _ = state.tx.send(EngineRequest::Stop);
 }
 
@@ -80,7 +165,13 @@ fn stop(state: State<AppState>) {
 fn vars(state: State<AppState>) -> Vec<tl_types::VariableInfo> {
     let (reply_tx, reply_rx) = mpsc::channel();
     let _ = state.tx.send(EngineRequest::Vars { reply: reply_tx });
-    reply_rx.recv().unwrap_or_default()
+    match reply_rx.recv() {
+        Ok(vars) => vars,
+        Err(_) => {
+            eprintln!("warning: engine thread stopped; variable list unavailable");
+            Vec::new()
+        }
+    }
 }
 
 /// 应用信息（About 对话框）：版本以 Cargo 包版本为唯一来源。
@@ -114,10 +205,34 @@ fn write_text_file(path: String, contents: String) -> Result<(), String> {
     std::fs::write(&path, contents).map_err(|e| format!("cannot write {path}: {e}"))
 }
 
+fn engine_error_report(message: &str) -> RunReport {
+    RunReport {
+        events: vec![StreamEntryPayload::Output {
+            text: format!("engine error: {message}"),
+        }],
+        error: Some(DiagnosticPayload {
+            identifier: Some("TensorLab:Engine".to_string()),
+            message: message.to_string(),
+            line: None,
+            callstack: Vec::new(),
+            severity: "error".to_string(),
+        }),
+        ..Default::default()
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn start_app() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            // 调试暂停事件：内核 __tl_debug__ 钩子在引擎线程上通知，转发给前端
+            let handle = app.handle().clone();
+            tl_commands::debug::set_listener(std::sync::Arc::new(move |ev| {
+                let _ = handle.emit("debug-paused", ev.line);
+            }));
+            Ok(())
+        })
         .manage(AppState {
             tx: spawn_engine_thread(),
         })
@@ -127,7 +242,10 @@ pub fn start_app() {
             vars,
             app_info,
             read_text_file,
-            write_text_file
+            write_text_file,
+            debug_set_breakpoints,
+            debug_state,
+            debug_resume
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

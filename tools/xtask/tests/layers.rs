@@ -34,4 +34,9 @@ fn layering_invariants_hold_for_the_real_workspace() {
         stdout.contains("layering invariants hold"),
         "unexpected xtask output:\n{stdout}"
     );
+    // 桌面 crate 位于 apps/tl-desktop/src-tauri，必须被递归发现并纳入校验。
+    assert!(
+        stdout.contains("tl-desktop"),
+        "desktop crate must participate in the layer check:\n{stdout}"
+    );
 }

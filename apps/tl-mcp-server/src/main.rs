@@ -6,7 +6,6 @@
 use serde_json::{json, Value};
 use std::io::{self, BufRead, Write};
 use tl_commands::Engine;
-use tl_types::StreamEntryPayload;
 
 const PROTOCOL_VERSION: &str = "2025-06-18";
 
@@ -31,22 +30,32 @@ fn serve() -> anyhow::Result<()> {
             continue;
         }
         let req: Value = match serde_json::from_str(&line) {
-            Ok(v) => v,
-            Err(_) => continue,
+            Ok(value) => value,
+            Err(_) => {
+                flush_error(&stdout, Value::Null, -32700, "Parse error")?;
+                continue;
+            }
         };
         let id = req.get("id").cloned();
-        let method = req.get("method").and_then(Value::as_str).unwrap_or("");
+        let Some(method) = req.get("method").and_then(Value::as_str) else {
+            if let Some(id) = id {
+                flush_error(&stdout, id, -32600, "Invalid Request")?;
+            }
+            continue;
+        };
+        // JSON-RPC 2.0：通知（无 id）不得产生响应。
+        let Some(id) = id else {
+            continue;
+        };
         let params = req.get("params").cloned().unwrap_or(json!({}));
 
-        let result = match method {
-            "initialize" => json!({
+        let result: Result<Value, (i64, String)> = match method {
+            "initialize" => Ok(json!({
                 "protocolVersion": PROTOCOL_VERSION,
                 "capabilities": { "tools": {} },
                 "serverInfo": { "name": "tensorlab", "version": env!("CARGO_PKG_VERSION") }
-            }),
-            // JSON-RPC 2.0：通知（notification，无 id）不得产生响应
-            "notifications/initialized" => continue,
-            "tools/list" => json!({
+            })),
+            "tools/list" => Ok(json!({
                 "tools": [
                     { "name": "run", "description": "Run a .m script from disk", "inputSchema": {
                         "type": "object", "properties": { "path": { "type": "string" } }, "required": ["path"] } },
@@ -57,11 +66,11 @@ fn serve() -> anyhow::Result<()> {
                     { "name": "vars", "description": "List workspace variables", "inputSchema": { "type": "object", "properties": {} } },
                     { "name": "reset", "description": "Clear the workspace and figures", "inputSchema": { "type": "object", "properties": {} } }
                 ]
-            }),
+            })),
             "tools/call" => {
                 let name = params.get("name").and_then(Value::as_str).unwrap_or("");
                 let args = params.get("arguments").cloned().unwrap_or(json!({}));
-                match name {
+                Ok(match name {
                     "run" => {
                         let path = args.get("path").and_then(Value::as_str).unwrap_or("");
                         match run_path(&mut engine, path) {
@@ -98,13 +107,14 @@ fn serve() -> anyhow::Result<()> {
                         tool_text("workspace reset.".to_string())
                     }
                     other => tool_err(format!("unknown tool: {other}")),
-                }
+                })
             }
-            _ => Value::Null,
+            other => Err((-32601, format!("Method not found: {other}"))),
         };
 
-        if !method.starts_with("notifications/") {
-            flush(&stdout, id, result)?;
+        match result {
+            Ok(value) => flush_result(&stdout, id, value)?,
+            Err((code, message)) => flush_error(&stdout, id, code, &message)?,
         }
     }
     Ok(())
@@ -135,14 +145,22 @@ fn tool_err(msg: String) -> Value {
     json!([{ "type": "text", "text": format!("error: {msg}") }])
 }
 
-fn flush(mut out: &io::Stdout, id: Option<Value>, result: Value) -> anyhow::Result<()> {
-    let mut obj = json!({ "jsonrpc": "2.0", "result": result });
-    if let Some(id) = id {
-        obj["id"] = id;
-    }
+fn flush_result(mut out: &io::Stdout, id: Value, result: Value) -> anyhow::Result<()> {
+    let obj = json!({ "jsonrpc": "2.0", "id": id, "result": result });
     serde_json::to_writer(&mut out, &obj)?;
     out.write_all(b"\n")?;
     out.flush()?;
-    let _ = StreamEntryPayload::ClearConsole; // 保持 import
+    Ok(())
+}
+
+fn flush_error(mut out: &io::Stdout, id: Value, code: i64, message: &str) -> anyhow::Result<()> {
+    let obj = json!({
+        "jsonrpc": "2.0",
+        "id": id,
+        "error": { "code": code, "message": message }
+    });
+    serde_json::to_writer(&mut out, &obj)?;
+    out.write_all(b"\n")?;
+    out.flush()?;
     Ok(())
 }

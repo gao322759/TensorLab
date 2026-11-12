@@ -1,0 +1,7 @@
+[package]
+name = "tl-mesh"
+version = "0.3.0"
+edition = "2021"
+license = "MIT"
+authors = ["TensorLab Team"]
+description = "TensorLab L1 — structured cylindrical 3D FVM grid (r, theta, z)"

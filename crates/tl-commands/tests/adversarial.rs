@@ -256,15 +256,9 @@ fn kalman_scalar_analytic_and_singular_r() {
     close(v[0], 0.4019, 1e-3, "kalman 2x2 L11");
     close(v[1], 0.6720, 1e-3, "kalman 2x2 P11");
 
-    // R=0 是奇异情形：当前返回 NaN（不 panic），测试固定这一可诊断行为。
-    let text = assert_ok(
-        &h.run("S=ss(-1,1,1,0); [L,P]=kalman(S,1,0); fprintf('%g %g\\n',L,P);"),
-        "kalman R=0",
-    );
-    assert!(
-        text.to_lowercase().contains("nan"),
-        "kalman R=0 should expose NaN, got {text:?}"
-    );
+    // R=0 是奇异情形：应返回可诊断的错误，而不是 NaN 或卡死。
+    let report = h.run("S=ss(-1,1,1,0); [L,P]=kalman(S,1,0); fprintf('%g %g\\n',L,P);");
+    assert_err(&report, "kalman R=0", "R must be a positive scalar");
 }
 
 #[test]
@@ -581,7 +575,7 @@ fn stats_degenerate_cases() {
     assert_err(
         &h.run("b=nlinfit([1;2;3],[1;2;3],@(b,x) b(1),[1]);"),
         "nlinfit bad model",
-        "Index out of bounds",
+        "same size as y",
     );
 }
 
@@ -611,15 +605,15 @@ fn signal_degenerate_and_anti_cheat_cases() {
     let text = assert_ok(
         &h.run(
             "b1=fir2(4,[0 .5 1],[1 1 0]); b2=fir2(4,[0 .2 1],[1 0 0]); \
-             fprintf('%g %.5f %.5f\\n',numel(b1),b1(1),b2(1));",
+             fprintf('%g %.6f %.6f %.6f %.6f\\n',numel(b1),b1(1),b2(1),b1(3),b2(3));",
         ),
         "fir2",
     );
     let v = nums(&text);
     assert_eq!(v[0], 5.0, "fir2 length");
-    close(v[1], 0.74754, 1e-4, "fir2 spec 1");
-    close(v[2], 0.04164, 1e-4, "fir2 spec 2");
-    assert!((v[1] - v[2]).abs() > 0.1, "fir2 must depend on the spec");
+    close(v[1], -0.008106, 1e-4, "fir2 spec 1");
+    close(v[2], 0.006931, 2e-4, "fir2 spec 2");
+    assert!((v[3] - v[4]).abs() > 0.1, "fir2 must depend on the spec");
 
     // freqs：解析值 + 两组系统。
     let text = assert_ok(

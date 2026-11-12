@@ -3,9 +3,36 @@
 本文件记录 TensorLab 的所有重要变更。格式参考 [Keep a Changelog](https://keepachangelog.com/)，
 版本号遵循 [Semantic Versioning](https://semver.org/)。
 
-## [Unreleased] — v0.3-dev
+## [0.3.0] — 2026-11-12
 
 ### Added
+- **调试器（断点 / 单步 / 继续 / 停止）**：桌面端实现 MATLAB `dbstop`/`dbcont`/`dbstep`/`dbquit`
+  语义。RunMat 0.6.2 无调试 API，采用**源码语句级插桩 + inventory 注册的阻塞式内置函数**
+  （`crates/tl-kernel/src/debug.rs`）：存在断点时自动走 `run_debugged` 路径，无断点时零开销。
+  入口：gutter 单击 / `F12` / `dbstop <line>` 设断点；Step 按钮 / `F10` / `dbstep` 单步；
+  Continue / `F5` / `dbcont` 继续；Stop / `dbquit` 终止；`dbclear all` 清空。
+  暂停时行高亮 + gutter 绿箭头 + 状态栏 `paused · line N`。
+- **错误处理对齐 MATLAB**：控制台错误按 `Error (identifier): message` → `at line N` → 调用栈输出，
+  可**点击**跳转编辑器并红色高亮出错行；每次 Run 前清除上一轮高亮。
+- **桌面 UI 对齐 MATLAB R2026a**：4-tab ribbon（HOME/EDITOR/VIEW/HELP）、浅色为默认主题、
+  像素复测度量（标题栏 28 / tab 行 34 / ribbon 内容行 120 / 地址栏 26）、
+  tab 行两主题均为品牌深蓝 `#144074`、活动面板头蓝底 `#2e71bf`、全局搜索移入 tab 行、
+  面板折叠/跨列拖拽/分隔条/Reset Layout、Preferences（树导航 + 搜索）、主题持久化。
+- `debug_state` / `debug_set_breakpoints` / `debug_resume` IPC 命令与 `debug-paused` 事件。
+
+### Changed
+- **版本号统一为 0.3.0**：workspace、Tauri、xtask、tl-mesh 同步。
+- **`run` 改为 async + `spawn_blocking`**：同步 Tauri 命令在主线程阻塞 `recv()` 会冻结窗口
+  （v0.3.0 预览版曾表现为设置断点后"死机"）；调试暂停状态改由 80 ms 轮询 `debug_state`
+  驱动 UI，`Stop` 无条件走后端（后端据 `is_paused` 转 `dbquit`）。
+- 设计 token 文档按 2026-11-12 像素复测校正（chrome 行高、深色主题底色、出厂默认两栏布局）。
+- GUI smoke 断言 11 → **19**（新增 ribbon/主题/Preferences/停靠/断点/暂停/恢复/db* 命令）。
+
+### Added（v0.3 开发期其它变更）
+
+- **classdef 支持扩展到桌面编辑器**（K8）：新增 `Engine::run_at`（执行缓冲区文本 + 用磁盘路径做
+  companion 发现，无需修改 RunMat）；桌面 `run` IPC 增加可选 `path`（UI 传 `currentPath`），
+  已保存脚本的编辑器缓冲区可使用同目录 classdef；未保存缓冲区、CLI REPL、MCP `eval` 仍走 Text。
 - **Command Window 复制/清空**（对齐 MATLAB）：控制台右键菜单（Copy / Copy All /
   Select All / Clear Command Window）、`Ctrl+L` 清空、控制台聚焦时 `Ctrl+A` 全选；
   选中文本仍走系统 `Ctrl+C`；GUI smoke 覆盖右键复制与 `Ctrl+L` 清空。

@@ -20,3 +20,19 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# Local research workspace (SiC-PVT / SiC-KH) — not part of the public product release
+/.tmp/
+/SiC-PVT Plan.md
+/plan.md
+/docs/sicpvt/
+/docs/sickh/
+/docs/kernel-v0*-report.md
+/toolbox/+sic*/
+/toolbox/sickh_data/
+/toolbox/sickh_tools/
+/toolbox/sicpvt_tools/
+/tests/sickh/
+/tests/sicpvt/
+/tests/run_sicpvt_regression.ps1
+/crates/tl-commands/tests/sicpvt.rs

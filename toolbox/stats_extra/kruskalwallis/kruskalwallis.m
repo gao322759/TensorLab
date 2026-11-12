@@ -1,23 +1,36 @@
 function [p, H] = kruskalwallis(x, group)
 %KRUSKALWALLIS Kruskal-Wallis nonparametric one-way ANOVA.
 %   P = KRUSKALWALLIS(X,GROUP) tests whether the group medians differ.
+%   P = KRUSKALWALLIS(X) with a matrix X treats each column as a group.
 %   [P,H] = KRUSKALWALLIS(...) also returns the H statistic.
     arguments
         x
         group = []
     end
-    x = x(:);
-    n = numel(x);
     if isempty(group)
-        if size(x, 2) < 2
+        nc = size(x, 2);
+        if nc < 2
             error('kruskalwallis:group', 'provide a GROUP vector');
         end
-        group = zeros(n, 1);
-        for i = 1:n
-            group(i) = 1;
+        nr = size(x, 1);
+        xs = zeros(nr * nc, 1);
+        gs = zeros(nr * nc, 1);
+        for j = 1:nc
+            for i = 1:nr
+                idx = (j - 1) * nr + i;
+                xs(idx) = x(i, j);
+                gs(idx) = j;
+            end
         end
+        x = xs;
+        group = gs;
     end
+    x = x(:);
     group = group(:);
+    if numel(x) ~= numel(group)
+        error('kruskalwallis:size', 'X and GROUP must have the same length');
+    end
+    n = numel(x);
 
     % Ranks with tie correction.
     [xs, idx] = sort(x);

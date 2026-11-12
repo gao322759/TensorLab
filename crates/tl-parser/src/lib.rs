@@ -288,9 +288,20 @@ pub fn tokenize_line(line: &str) -> Vec<Token> {
             i += n;
             continue;
         }
-        // 字符串 'a' 或 "a"（MATLAB 里 'x' 是 char；转置歧义由前一个 token 判断，此处简化）
+        // 单引号转置：前一个 token 表明这是后缀转置，而不是字符串起始。
         let first = bytes[i];
-        if first == '"' || (first == '\'' && looks_like_string_start(&out)) {
+        if first == '\'' && !looks_like_string_start(&out) {
+            out.push(Token {
+                kind: TokenKind::Operator,
+                start: offset_len(0),
+                len: 1,
+                text: "'".to_string(),
+            });
+            i += 1;
+            continue;
+        }
+        // 字符串 'a' 或 "a"（MATLAB 里 'x' 是 char；转置歧义由前一个 token 判断）
+        if first == '"' || first == '\'' {
             let quote = first;
             let mut j = i + 1;
             let mut closed = false;
@@ -420,10 +431,27 @@ pub fn tokenize_line(line: &str) -> Vec<Token> {
     out
 }
 
-fn looks_like_string_start(_prev: &[Token]) -> bool {
-    // MATLAB 的 ' 依上下文是转置或字符串起始。编辑器高亮场景下：
-    // 前一个 token 是标识符/数字/右括号 → 转置；否则 → 字符串。
-    true
+fn looks_like_string_start(prev: &[Token]) -> bool {
+    // MATLAB 的 ' 依上下文是转置或字符串起始。跳过空白/注释后：
+    // 标识符、数字、字符串、关键字、右括号、`.` 结尾的运算符之后 → 转置；
+    // 其余（行首、运算符、逗号/分号、左括号）→ 字符串。
+    let last = prev
+        .iter()
+        .rev()
+        .find(|t| !matches!(t.kind, TokenKind::Whitespace | TokenKind::Comment));
+    match last {
+        None => true,
+        Some(t) => match t.kind {
+            TokenKind::Ident
+            | TokenKind::Keyword
+            | TokenKind::Function
+            | TokenKind::Number
+            | TokenKind::String => false,
+            TokenKind::Bracket => !matches!(t.text.as_str(), ")" | "]" | "}"),
+            TokenKind::Operator => !t.text.contains('.'),
+            _ => true,
+        },
+    }
 }
 
 /// 整行 tokenize（编辑器同步用）
@@ -454,6 +482,30 @@ mod tests {
         assert!(toks
             .iter()
             .any(|t| t.kind == TokenKind::Number && t.text.contains("1.5e3")));
+    }
+
+    #[test]
+    fn transpose_quote_is_not_a_string() {
+        let toks = tokenize_line("y = A' * B;");
+        assert!(
+            toks.iter()
+                .any(|t| t.kind == TokenKind::Operator && t.text == "'"),
+            "transpose quote must be an operator: {toks:?}"
+        );
+        assert!(
+            !toks.iter().any(|t| t.kind == TokenKind::String),
+            "transpose must not start a string: {toks:?}"
+        );
+    }
+
+    #[test]
+    fn quote_after_operator_starts_a_string() {
+        let toks = tokenize_line("f('x')");
+        assert!(
+            toks.iter()
+                .any(|t| t.kind == TokenKind::String && t.text == "'x'"),
+            "string literal expected: {toks:?}"
+        );
     }
 
     /// 不变量：token 文本必须无缝拼接回原始行（高亮层与文本层严格对齐）

@@ -1,0 +1,624 @@
+{
+  "category": "image",
+  "functions": [
+    {
+      "name": "bwareaopen",
+      "setup": "BW=logical([0 1 0;1 1 1;0 1 0]);",
+      "compare": [
+        "y"
+      ],
+      "matlab": true,
+      "tol": 0,
+      "normal": [
+        "y=bwareaopen(BW,2);",
+        "y=bwareaopen(BW,1);",
+        "y=bwareaopen(BW,3);"
+      ],
+      "boundary": [
+        "y=bwareaopen(BW,0);",
+        "y=bwareaopen(BW,9);"
+      ],
+      "abnormal": [
+        "y=bwareaopen(BW,-1);",
+        "y=bwareaopen(BW,2,3);"
+      ]
+    },
+    {
+      "name": "bwconncomp",
+      "setup": "BW=logical([1 0 0;0 1 1;0 0 1]);",
+      "compare": [
+        "n"
+      ],
+      "matlab": true,
+      "tol": 0,
+      "normal": [
+        "s=bwconncomp(BW); n=s.NumObjects;",
+        "s=bwconncomp(BW,4); n=s.NumObjects;",
+        "s=bwconncomp(BW,8); n=s.NumObjects;"
+      ],
+      "boundary": [
+        "s=bwconncomp(false(1)); n=s.NumObjects;",
+        "s=bwconncomp(true(3)); n=s.NumObjects;"
+      ],
+      "abnormal": [
+        "s=bwconncomp(BW,3); n=s.NumObjects;",
+        "s=bwconncomp([],4); n=s.NumObjects;"
+      ]
+    },
+    {
+      "name": "bwdist",
+      "setup": "BW=logical([0 0 0;0 1 0;0 0 0]);",
+      "compare": [
+        "D"
+      ],
+      "matlab": true,
+      "tol": 0.000001,
+      "normal": [
+        "D=bwdist(BW);",
+        "D=bwdist(logical([1 0 0;0 1 0;0 0 1]));",
+        "D=bwdist(true(3));"
+      ],
+      "boundary": [
+        "D=bwdist(true(1));",
+        "D=bwdist(logical(ones(5,5)));"
+      ],
+      "abnormal": [
+        "D=bwdist([]);",
+        "D=bwdist([1 0;0 1]);"
+      ]
+    },
+    {
+      "name": "bwlabel",
+      "setup": "BW=logical([1 0 0;0 1 1;0 0 1]);",
+      "compare": [
+        "L",
+        "n"
+      ],
+      "matlab": true,
+      "tol": 0,
+      "normal": [
+        "[L,n]=bwlabel(BW);",
+        "[L,n]=bwlabel(BW,4);",
+        "[L,n]=bwlabel(BW,8);"
+      ],
+      "boundary": [
+        "[L,n]=bwlabel(false(1),8);",
+        "[L,n]=bwlabel(true(3),8);"
+      ],
+      "abnormal": [
+        "[L,n]=bwlabel(BW,3);",
+        "[L,n]=bwlabel([],8);"
+      ]
+    },
+    {
+      "name": "edge",
+      "setup": "A=[1 2 3;4 5 6;7 8 9];",
+      "compare": [
+        "E"
+      ],
+      "matlab": true,
+      "tol": 0,
+      "normal": [
+        "E=edge(A,'sobel');",
+        "E=edge(A,'prewitt');",
+        "E=edge(A,'roberts');"
+      ],
+      "boundary": [
+        "E=edge(A,'sobel',0);",
+        "E=edge(A,'sobel',1);"
+      ],
+      "abnormal": [
+        "E=edge(A,'bad');",
+        "E=edge([],'sobel');"
+      ]
+    },
+    {
+      "name": "histeq",
+      "setup": "A=[1 2 3;4 5 6;7 8 9];",
+      "compare": [
+        "J"
+      ],
+      "matlab": true,
+      "tol": 1e-8,
+      "normal": [
+        "J=histeq(A);",
+        "J=histeq(A,16);",
+        "J=histeq(A,8);"
+      ],
+      "boundary": [
+        "J=histeq(A,2);",
+        "J=histeq(A,256);"
+      ],
+      "abnormal": [
+        "J=histeq(A,0);",
+        "J=histeq(A,-1);"
+      ]
+    },
+    {
+      "name": "imadjust",
+      "setup": "A=[0.1 0.2 0.3;0.4 0.5 0.6;0.7 0.8 0.9];",
+      "compare": [
+        "J"
+      ],
+      "matlab": true,
+      "tol": 0.0001,
+      "normal": [
+        "J=imadjust(A);",
+        "J=imadjust(A,[0.2 0.8],[0 1]);",
+        "J=imadjust(A,[0 1],[0.2 0.8],2);"
+      ],
+      "boundary": [
+        "J=imadjust(A,[0 1],[0 1],0.5);",
+        "J=imadjust(A,[0 1],[0 1],2);"
+      ],
+      "abnormal": [
+        "J=imadjust(A,[0 1],[0 1],0);",
+        "J=imadjust(A,[1 0],[0 1]);"
+      ],
+      "note": "MATLAB 对 double 图像使用 256 级查找表，残差约 1e-5"
+    },
+    {
+      "name": "imclose",
+      "setup": "BW=logical([0 0 0;0 1 0;0 0 0]);",
+      "compare": [
+        "J"
+      ],
+      "matlab": true,
+      "tol": 0,
+      "normal": [
+        "J=imclose(BW,strel('square',3));",
+        "J=imclose(BW,ones(3));",
+        "J=imclose(BW,strel('disk',1));"
+      ],
+      "boundary": [
+        "J=imclose(BW,1);",
+        "J=imclose(BW,ones(5));"
+      ],
+      "abnormal": [
+        "J=imclose(BW,[]);",
+        "J=imclose(BW,strel('bad',3));"
+      ]
+    },
+    {
+      "name": "imcrop",
+      "setup": "A=[1 2 3;4 5 6;7 8 9];",
+      "compare": [
+        "B"
+      ],
+      "matlab": true,
+      "note": "本项目按 RECT=[xmin ymin w h] 的 1-based 像素索引裁剪，不做 MATLAB 的空间坐标外扩",
+      "tol": 0,
+      "normal": [
+        "B=imcrop(A,[1 1 2 2]);",
+        "B=imcrop(A,[2 2 2 2]);",
+        "B=imcrop(A,[1 1 3 3]);"
+      ],
+      "boundary": [
+        "B=imcrop(A,[1 1 1 1]);",
+        "B=imcrop(A,[1 1 3 3]);"
+      ],
+      "abnormal": [
+        "B=imcrop(A,[-1 -1 2 2]);",
+        "B=imcrop(A,[]);"
+      ]
+    },
+    {
+      "name": "imdilate",
+      "setup": "BW=logical([0 0 0;0 1 0;0 0 0]);",
+      "compare": [
+        "J"
+      ],
+      "matlab": true,
+      "tol": 0,
+      "normal": [
+        "J=imdilate(BW,strel('square',3));",
+        "J=imdilate(BW,ones(3));",
+        "J=imdilate(BW,strel('disk',1));"
+      ],
+      "boundary": [
+        "J=imdilate(BW,1);",
+        "J=imdilate(BW,ones(5));"
+      ],
+      "abnormal": [
+        "J=imdilate(BW,[]);",
+        "J=imdilate(BW,strel('bad',3));"
+      ]
+    },
+    {
+      "name": "imerode",
+      "setup": "BW=logical([1 1 1;1 1 1;1 1 1]);",
+      "compare": [
+        "J"
+      ],
+      "matlab": true,
+      "tol": 0,
+      "normal": [
+        "J=imerode(BW,strel('square',3));",
+        "J=imerode(BW,ones(3));",
+        "J=imerode(BW,strel('disk',1));"
+      ],
+      "boundary": [
+        "J=imerode(BW,1);",
+        "J=imerode(BW,ones(5));"
+      ],
+      "abnormal": [
+        "J=imerode(BW,[]);",
+        "J=imerode(BW,strel('bad',3));"
+      ]
+    },
+    {
+      "name": "imfill",
+      "setup": "BW=logical([0 0 0;0 1 0;0 0 0]);",
+      "compare": [
+        "J"
+      ],
+      "matlab": true,
+      "tol": 0,
+      "normal": [
+        "J=imfill(BW,'holes');",
+        "J=imfill(logical([1 1 1;1 0 1;1 1 1]),'holes');",
+        "J=imfill(BW,'holes');"
+      ],
+      "boundary": [
+        "J=imfill(true(1),'holes');",
+        "J=imfill(true(3),'holes');"
+      ],
+      "abnormal": [
+        "J=imfill(BW,'bad');",
+        "J=imfill([],'holes');"
+      ]
+    },
+    {
+      "name": "imgaussfilt",
+      "setup": "A=[1 2 3;4 5 6;7 8 9];",
+      "compare": [
+        "J"
+      ],
+      "matlab": true,
+      "tol": 0.000001,
+      "normal": [
+        "J=imgaussfilt(A,1);",
+        "J=imgaussfilt(A,0.5);",
+        "J=imgaussfilt(A,2);"
+      ],
+      "boundary": [
+        "J=imgaussfilt(A,0.1);",
+        "J=imgaussfilt(A,5);"
+      ],
+      "abnormal": [
+        "J=imgaussfilt(A,0);",
+        "J=imgaussfilt(A,-1);"
+      ]
+    },
+    {
+      "name": "imnoise",
+      "setup": "A=[0.1 0.2 0.3;0.4 0.5 0.6;0.7 0.8 0.9];",
+      "compare": [],
+      "matlab": false,
+      "tol": 0,
+      "normal": [
+        "J=imnoise(A,'gaussian',0,0.01);",
+        "J=imnoise(A,'salt & pepper',0.05);",
+        "J=imnoise(A,'speckle',0.1);"
+      ],
+      "boundary": [
+        "J=imnoise(A,'salt & pepper',0);",
+        "J=imnoise(A,'salt & pepper',1);"
+      ],
+      "abnormal": [
+        "J=imnoise(A,'bad');",
+        "J=imnoise([],'gaussian');"
+      ]
+    },
+    {
+      "name": "imopen",
+      "setup": "BW=logical([0 0 0;0 1 0;0 0 0]);",
+      "compare": [
+        "J"
+      ],
+      "matlab": true,
+      "tol": 0,
+      "normal": [
+        "J=imopen(BW,strel('square',3));",
+        "J=imopen(BW,ones(3));",
+        "J=imopen(BW,strel('disk',1));"
+      ],
+      "boundary": [
+        "J=imopen(BW,1);",
+        "J=imopen(BW,ones(5));"
+      ],
+      "abnormal": [
+        "J=imopen(BW,[]);",
+        "J=imopen(BW,strel('bad',3));"
+      ]
+    },
+    {
+      "name": "imquantize",
+      "setup": "A=[1 2 3;4 5 6;7 8 9];",
+      "compare": [
+        "J"
+      ],
+      "matlab": true,
+      "tol": 0,
+      "normal": [
+        "J=imquantize(A,[2 5 8]);",
+        "J=imquantize(A,[3 6]);",
+        "J=imquantize(A,[2 4 6 8]);"
+      ],
+      "boundary": [
+        "J=imquantize(A,5);",
+        "J=imquantize(A,1:8);"
+      ],
+      "abnormal": [
+        "J=imquantize(A,[]);",
+        "J=imquantize(A,[8 5 2]);"
+      ]
+    },
+    {
+      "name": "imresize",
+      "setup": "A=[1 2 3;4 5 6;7 8 9];",
+      "compare": [
+        "J"
+      ],
+      "matlab": true,
+      "tol": 0.000001,
+      "normal": [
+        "J=imresize(A,2);",
+        "J=imresize(A,0.5);",
+        "J=imresize(A,2,'nearest');"
+      ],
+      "boundary": [
+        "J=imresize(A,1);",
+        "J=imresize(A,4);"
+      ],
+      "abnormal": [
+        "J=imresize(A,0);",
+        "J=imresize(A,-1);"
+      ]
+    },
+    {
+      "name": "imrotate",
+      "setup": "A=[1 2 3;4 5 6;7 8 9];",
+      "compare": [
+        "J"
+      ],
+      "matlab": true,
+      "tol": 0.000001,
+      "normal": [
+        "J=imrotate(A,45);",
+        "J=imrotate(A,90);",
+        "J=imrotate(A,60,'nearest');"
+      ],
+      "boundary": [
+        "J=imrotate(A,0);",
+        "J=imrotate(A,360);"
+      ],
+      "abnormal": [
+        "J=imrotate(A,45,'bad');",
+        "J=imrotate([],45);"
+      ]
+    },
+    {
+      "name": "imtranslate",
+      "setup": "A=[1 2 3;4 5 6;7 8 9];",
+      "compare": [
+        "J"
+      ],
+      "matlab": true,
+      "tol": 0.000001,
+      "normal": [
+        "J=imtranslate(A,[1 1]);",
+        "J=imtranslate(A,[-1 0]);",
+        "J=imtranslate(A,[0.5 0.5]);"
+      ],
+      "boundary": [
+        "J=imtranslate(A,[0 0]);",
+        "J=imtranslate(A,[10 10]);"
+      ],
+      "abnormal": [
+        "J=imtranslate(A,[]);",
+        "J=imtranslate(A,[1 2 3]);"
+      ]
+    },
+    {
+      "name": "label2rgb",
+      "setup": "L=[1 1 0;0 2 2;0 0 3];",
+      "compare": [
+        "RGB"
+      ],
+      "matlab": true,
+      "tol": 1e-8,
+      "normal": [
+        "RGB=label2rgb(L);",
+        "RGB=label2rgb(L,[1 0 0;0 1 0;0 0 1]);",
+        "RGB=label2rgb(L,'jet');"
+      ],
+      "boundary": [
+        "RGB=label2rgb([1 0;0 0]);",
+        "RGB=label2rgb([1 2;3 4]);"
+      ],
+      "abnormal": [
+        "RGB=label2rgb(L,[1 0 0]);",
+        "RGB=label2rgb([]);"
+      ]
+    },
+    {
+      "name": "mat2gray",
+      "setup": "A=[1 2 3;4 5 6;7 8 9];",
+      "compare": [
+        "J"
+      ],
+      "matlab": true,
+      "tol": 1e-12,
+      "normal": [
+        "J=mat2gray(A);",
+        "J=mat2gray(A,[0 9]);",
+        "J=mat2gray(A,[2 8]);"
+      ],
+      "boundary": [
+        "J=mat2gray(A,[1 9]);",
+        "J=mat2gray(A,[5 5]);"
+      ],
+      "abnormal": [
+        "J=mat2gray(A,[9 1]);",
+        "J=mat2gray([]);"
+      ]
+    },
+    {
+      "name": "medfilt2",
+      "setup": "A=[1 2 3;4 5 6;7 8 9];",
+      "compare": [
+        "J"
+      ],
+      "matlab": true,
+      "tol": 0,
+      "normal": [
+        "J=medfilt2(A);",
+        "J=medfilt2(A,[3 3]);",
+        "J=medfilt2(A,[2 2]);"
+      ],
+      "boundary": [
+        "J=medfilt2(A,[1 1]);",
+        "J=medfilt2(A,[5 5]);"
+      ],
+      "abnormal": [
+        "J=medfilt2(A,[0 0]);",
+        "J=medfilt2(A,[-1 -1]);"
+      ]
+    },
+    {
+      "name": "ordfilt2",
+      "setup": "A=[1 2 3;4 5 6;7 8 9];",
+      "compare": [
+        "J"
+      ],
+      "matlab": true,
+      "tol": 0,
+      "normal": [
+        "J=ordfilt2(A,1,ones(3));",
+        "J=ordfilt2(A,5,ones(3));",
+        "J=ordfilt2(A,9,ones(3));"
+      ],
+      "boundary": [
+        "J=ordfilt2(A,1,ones(3));",
+        "J=ordfilt2(A,9,ones(3));"
+      ],
+      "abnormal": [
+        "J=ordfilt2(A,0,ones(3));",
+        "J=ordfilt2(A,10,ones(3));"
+      ]
+    },
+    {
+      "name": "regionprops",
+      "setup": "L=[1 1 0;0 2 2;0 0 3];",
+      "compare": [
+        "y"
+      ],
+      "matlab": true,
+      "tol": 1e-8,
+      "normal": [
+        "s=regionprops(L,'Area'); y=s(1).Area;",
+        "s=regionprops(L,'Centroid'); y=s(1).Centroid;",
+        "s=regionprops(L,'BoundingBox'); y=s(1).BoundingBox;"
+      ],
+      "boundary": [
+        "s=regionprops([1 0;0 0],'Area'); y=s(1).Area;",
+        "s=regionprops([1 2;3 4],'Area'); y=s(1).Area;"
+      ],
+      "abnormal": [
+        "s=regionprops(L,'BadProp'); y=s(1).Area;",
+        "s=regionprops([],'Area'); y=s(1).Area;"
+      ]
+    },
+    {
+      "name": "rgb2ycbcr",
+      "setup": "I=zeros(3,3,3); I(:,:,1)=[1 0 0;0 1 0;0 0 1]; I(:,:,2)=[0 1 0;0 0 1;1 0 0]; I(:,:,3)=[0 0 1;1 0 0;0 1 0];",
+      "compare": [
+        "Y"
+      ],
+      "matlab": true,
+      "tol": 0.000001,
+      "normal": [
+        "Y=rgb2ycbcr(I);",
+        "Y=rgb2ycbcr(zeros(3,3,3));",
+        "Y=rgb2ycbcr(ones(3,3,3));"
+      ],
+      "boundary": [
+        "Y=rgb2ycbcr(zeros(1,1,3));",
+        "Y=rgb2ycbcr(ones(5,5,3));"
+      ],
+      "abnormal": [
+        "Y=rgb2ycbcr(zeros(3,3));",
+        "Y=rgb2ycbcr([]);"
+      ],
+      "note": "MATLAB 内部用单精度常数计算，残差约 1e-7"
+    },
+    {
+      "name": "strel",
+      "compare": [
+        "N"
+      ],
+      "matlab": true,
+      "tol": 0,
+      "normal": [
+        "s=strel('square',3); N=s.Neighborhood;",
+        "s=strel('square',5); N=s.Neighborhood;",
+        "s=strel('disk',1); N=s.Neighborhood;"
+      ],
+      "boundary": [
+        "s=strel('square',1); N=s.Neighborhood;",
+        "s=strel('square',7); N=s.Neighborhood;"
+      ],
+      "abnormal": [
+        "s=strel('bad',3); N=s.Neighborhood;",
+        "s=strel('square',0); N=s.Neighborhood;"
+      ]
+    },
+    {
+      "name": "wiener2",
+      "setup": "A=[1 2 3;4 5 6;7 8 9];",
+      "compare": [
+        "J"
+      ],
+      "matlab": true,
+      "tol": 0.000001,
+      "normal": [
+        "J=wiener2(A);",
+        "J=wiener2(A,[3 3]);",
+        "J=wiener2(A,[5 5]);"
+      ],
+      "boundary": [
+        "J=wiener2(A,[1 3]);",
+        "J=wiener2(A,[7 7]);"
+      ],
+      "abnormal": [
+        "J=wiener2(A,[0 0]);",
+        "J=wiener2(A,[-1 -1]);"
+      ],
+      "note": "局部统计使用零填充（与 MATLAB 一致）；[1 1] 是 MATLAB 的退化路径（返回 NaN），改用 [1 3]"
+    },
+    {
+      "name": "ycbcr2rgb",
+      "setup": "I=zeros(3,3,3); I(:,:,1)=[1 0 0;0 1 0;0 0 1]; I(:,:,2)=[0 1 0;0 0 1;1 0 0]; I(:,:,3)=[0 0 1;1 0 0;0 1 0]; Y=rgb2ycbcr(I);",
+      "compare": [
+        "R"
+      ],
+      "matlab": true,
+      "tol": 0.000001,
+      "normal": [
+        "R=ycbcr2rgb(Y);",
+        "R=ycbcr2rgb(zeros(3,3,3));",
+        "R=ycbcr2rgb(ones(3,3,3));"
+      ],
+      "boundary": [
+        "R=ycbcr2rgb(zeros(1,1,3));",
+        "R=ycbcr2rgb(ones(5,5,3));"
+      ],
+      "abnormal": [
+        "R=ycbcr2rgb(zeros(3,3));",
+        "R=ycbcr2rgb([]);"
+      ],
+      "note": "MATLAB 内部用单精度常数计算，残差约 1e-7"
+    }
+  ]
+}
